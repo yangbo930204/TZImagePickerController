@@ -13,8 +13,8 @@
 #import "TZImagePickerController.h"
 #import "TZImageManager.h"
 #import "TZImageCropManager.h"
-#import "UINavigationController+FDFullscreenPopGesture.h"
-#import "UIColor+Hex.h"
+//#import "UINavigationController+FDFullscreenPopGesture.h"
+//#import "UIColor+Hex.h"
 
 @interface TZPhotoPreviewController ()<UICollectionViewDataSource,UICollectionViewDelegate,UIScrollViewDelegate> {
     UICollectionView *_collectionView;
@@ -44,14 +44,14 @@
 @property (nonatomic, strong) UIView *cropView;
 
 @property (nonatomic, assign) double progress;
-@property (strong, nonatomic) id alertView;
+@property (strong, nonatomic) UIAlertController *alertView;
 @end
 
 @implementation TZPhotoPreviewController
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.fd_prefersNavigationBarHidden = YES;
+//    self.fd_prefersNavigationBarHidden = YES;
     [TZImageManager manager].shouldFixOrientation = YES;
     TZImagePickerController *_tzImagePickerVc = (TZImagePickerController *)self.navigationController;
     if (!_didSetIsSelectOriginalPhoto) {
@@ -82,6 +82,8 @@
     [super viewWillAppear:animated];
     [self.navigationController setNavigationBarHidden:YES animated:YES];
 
+    [UIApplication sharedApplication].statusBarHidden = YES;
+
     if (_currentIndex) [_collectionView setContentOffset:CGPointMake((self.view.tz_width + 20) * _currentIndex, 0) animated:NO];
     [self customRefreshNaviBarAndBottomBarState];
 }
@@ -90,7 +92,7 @@
     [super viewWillDisappear:animated];
     [self.navigationController setNavigationBarHidden:NO animated:YES];
     TZImagePickerController *tzImagePickerVc = (TZImagePickerController *)self.navigationController;
-    if (tzImagePickerVc.needShowStatusBar && iOS7Later) {
+    if (tzImagePickerVc.needShowStatusBar) {
         [UIApplication sharedApplication].statusBarHidden = NO;
     }
     [TZImageManager manager].shouldFixOrientation = NO;
@@ -168,7 +170,7 @@
         [_naviBar addSubview:_currentIndexLabel];
         
         if (_tzImagePickerVc.needExpression) {
-            _naviBar.backgroundColor = [UIColor colorWithHexString:@"110F1C"];
+//            _naviBar.backgroundColor = [UIColor colorWithHexString:@"110F1C"];
 
             _currentIndexLabel.text = @"添加表情";
             
@@ -382,7 +384,7 @@
     CGFloat toolBarTop = self.view.tz_height - toolBarHeight;
     _toolBar.frame = CGRectMake(0, toolBarTop, self.view.tz_width, toolBarHeight);
     if (_tzImagePickerVc.allowPickingOriginalPhoto) {
-        CGFloat fullImageWidth = [_tzImagePickerVc.fullImageBtnTitleStr tz_calculateSizeWithAttributes:@{NSFontAttributeName:[UIFont systemFontOfSize:13]} maxSize:CGSizeMake(CGFLOAT_MAX, CGFLOAT_MAX)].width;
+        CGFloat fullImageWidth = [_tzImagePickerVc.fullImageBtnTitleStr boundingRectWithSize:CGSizeMake(CGFLOAT_MAX, CGFLOAT_MAX) options:NSStringDrawingUsesFontLeading attributes:@{NSFontAttributeName:[UIFont systemFontOfSize:13]} context:nil].size.width;
         _originalPhotoButton.frame = CGRectMake(0, 0, fullImageWidth + 56, 44);
         _originalPhotoLabel.frame = CGRectMake(fullImageWidth + 42, 0, 80, 44);
     }
@@ -425,7 +427,7 @@
     } else {
         NSArray *selectedModels = [NSArray arrayWithArray:_tzImagePickerVc.selectedModels];
         for (TZAssetModel *model_item in selectedModels) {
-            if ([[[TZImageManager manager] getAssetIdentifier:model.asset] isEqualToString:[[TZImageManager manager] getAssetIdentifier:model_item.asset]]) {
+            if ([model.asset.localIdentifier isEqualToString:model_item.asset.localIdentifier]) {
                 // 1.6.7版本更新:防止有多个一样的model,一次性被移除了
                 NSArray *selectedModelsTmp = [NSArray arrayWithArray:_tzImagePickerVc.selectedModels];
                 for (NSInteger i = 0; i < selectedModelsTmp.count; i++) {
@@ -492,12 +494,16 @@
         [_tzImagePickerVc addSelectedModel:model];
     }
     if (_tzImagePickerVc.allowCrop) { // 裁剪状态
+        _doneButton.enabled = NO;
+        [_tzImagePickerVc showProgressHUD];
         NSIndexPath *indexPath = [NSIndexPath indexPathForItem:_currentIndex inSection:0];
         TZPhotoPreviewCell *cell = (TZPhotoPreviewCell *)[_collectionView cellForItemAtIndexPath:indexPath];
         UIImage *cropedImage = [TZImageCropManager cropImageView:cell.previewView.imageView toRect:_tzImagePickerVc.cropRect zoomScale:cell.previewView.scrollView.zoomScale containerView:self.view];
         if (_tzImagePickerVc.needCircleCrop) {
 //            cropedImage = [TZImageCropManager circularClipImage:cropedImage];
         }
+        _doneButton.enabled = YES;
+        [_tzImagePickerVc hideProgressHUD];
         if (self.doneButtonClickBlockCropMode) {
             TZAssetModel *model = _models[_currentIndex];
             self.doneButtonClickBlockCropMode(cropedImage,model.asset);
@@ -623,8 +629,7 @@
     _selectButton.selected = model.isSelected;
     [self refreshSelectButtonImageViewContentMode];
     if (_selectButton.isSelected && _tzImagePickerVc.showSelectedIndex && _tzImagePickerVc.showSelectBtn) {
-        NSString *assetId = [[TZImageManager manager] getAssetIdentifier:model.asset];
-        NSString *index = [NSString stringWithFormat:@"%ld", [_tzImagePickerVc.selectedAssetIds indexOfObject:assetId] + 1];
+        NSString *index = [NSString stringWithFormat:@"%zd", [_tzImagePickerVc.selectedAssetIds indexOfObject:model.asset.localIdentifier] + 1];
         _indexLabel.text = index;
         _indexLabel.hidden = NO;
     } else {
@@ -670,8 +675,7 @@
     _selectButton.selected = model.isSelected;
     [self refreshSelectButtonImageViewContentMode];
     if (_selectButton.isSelected && _tzImagePickerVc.showSelectedIndex && _tzImagePickerVc.showSelectBtn) {
-        NSString *assetId = [[TZImageManager manager] getAssetIdentifier:model.asset];
-        NSString *index = [NSString stringWithFormat:@"%ld", [_tzImagePickerVc.selectedAssetIds indexOfObject:assetId] + 1];
+        NSString *index = [NSString stringWithFormat:@"%zd", [_tzImagePickerVc.selectedAssetIds indexOfObject:model.asset.localIdentifier] + 1];
         _indexLabel.text = index;
         _indexLabel.hidden = NO;
     } else {

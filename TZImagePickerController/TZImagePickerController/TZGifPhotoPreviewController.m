@@ -12,8 +12,8 @@
 #import "UIView+Layout.h"
 #import "TZPhotoPreviewCell.h"
 #import "TZImageManager.h"
-#import "UINavigationController+FDFullscreenPopGesture.h"
-#import "UIColor+Hex.h"
+//#import "UINavigationController+FDFullscreenPopGesture.h"
+//#import "UIColor+Hex.h"
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
@@ -40,7 +40,7 @@
         self.navigationItem.title = [NSString stringWithFormat:@"GIF %@",tzImagePickerVc.previewBtnTitleStr];
     }
     
-    self.fd_prefersNavigationBarHidden = YES;
+//    self.fd_prefersNavigationBarHidden = YES;
     
     [self configPreviewView];
     [self configNavBar];
@@ -50,7 +50,7 @@
 - (void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
     _originStatusBarStyle = [UIApplication sharedApplication].statusBarStyle;
-    [UIApplication sharedApplication].statusBarStyle = iOS7Later ? UIStatusBarStyleLightContent : UIStatusBarStyleBlackOpaque;
+    [UIApplication sharedApplication].statusBarStyle = UIStatusBarStyleLightContent;
 }
 
 - (void)viewWillDisappear:(BOOL)animated {
@@ -65,7 +65,8 @@
     if (tzImagePickerVc.needExpression) {
         
         _naviBar = [[UIView alloc] initWithFrame:CGRectZero];
-        _naviBar.backgroundColor = [UIColor colorWithHexString:@"110F1C"];
+//        _naviBar.backgroundColor = [UIColor colorWithHexString:@"110F1C"];
+        
         [self.view addSubview:_naviBar];
         
         CGFloat statusBarHeight = [TZCommonTools tz_statusBarHeight];
@@ -203,12 +204,10 @@
     _toolBar.hidden = !_toolBar.isHidden;
     [self.navigationController setNavigationBarHidden:_toolBar.isHidden];
     TZImagePickerController *tzImagePickerVc = (TZImagePickerController *)self.navigationController;
-    if (iOS7Later) {
-        if (_toolBar.isHidden) {
-            [UIApplication sharedApplication].statusBarHidden = YES;
-        } else if (tzImagePickerVc.needShowStatusBar) {
-            [UIApplication sharedApplication].statusBarHidden = NO;
-        }
+    if (_toolBar.isHidden) {
+        [UIApplication sharedApplication].statusBarHidden = YES;
+    } else if (tzImagePickerVc.needShowStatusBar) {
+        [UIApplication sharedApplication].statusBarHidden = NO;
     }
 }
 
