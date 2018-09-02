@@ -4,7 +4,7 @@
 //
 //  Created by 谭真 on 15/12/24.
 //  Copyright © 2015年 谭真. All rights reserved.
-//  version 2.1.9 - 2018.07.12
+//  version 2.2.2 - 2018.07.16
 //  更多信息，请前往项目的github地址：https://github.com/banchichen/TZImagePickerController
 
 #import "TZImagePickerController.h"
@@ -55,10 +55,9 @@
     self.navigationBar.translucent = YES;
     [TZImageManager manager].shouldFixOrientation = NO;
 
-    // Default appearance, you can reset these after this method
     // 默认的外观，你可以在这个方法后重置
-    self.oKButtonTitleColorNormal   = [UIColor colorWithRed:(83/255.0) green:(179/255.0) blue:(17/255.0) alpha:1.0];
-    self.oKButtonTitleColorDisabled = [UIColor colorWithRed:(83/255.0) green:(179/255.0) blue:(17/255.0) alpha:0.5];
+    self.oKButtonTitleColorNormal   = [UIColor colorWithRed:(255/255.0) green:(255/255.0) blue:(255/255.0) alpha:1.0];
+    self.oKButtonTitleColorDisabled = [UIColor colorWithRed:(226/255.0) green:(226/255.0) blue:(226/255.0) alpha:0.5];
     
     if (iOS7Later) {
         self.navigationBar.barTintColor = [UIColor colorWithRed:(34/255.0) green:(34/255.0)  blue:(34/255.0) alpha:1.0];
@@ -274,9 +273,9 @@
     self.notScaleImage = NO;
     self.statusBarStyle = UIStatusBarStyleLightContent;
     self.cannotSelectLayerColor = [[UIColor whiteColor] colorWithAlphaComponent:0.8];
-    self.allowCameraLocation = YES;
+    self.allowCameraLocation = NO;
     
-    self.iconThemeColor = [UIColor colorWithRed:31 / 255.0 green:185 / 255.0 blue:34 / 255.0 alpha:1.0];
+    self.iconThemeColor = [UIColor colorWithRed:124 / 255.0 green:119 / 255.0 blue:226 / 255.0 alpha:1.0];
     [self configDefaultBtnTitle];
     
     CGFloat cropViewWH = MIN(self.view.tz_width, self.view.tz_height) / 3 * 2;

@@ -12,11 +12,14 @@
 #import "UIView+Layout.h"
 #import "TZPhotoPreviewCell.h"
 #import "TZImageManager.h"
+#import "UINavigationController+FDFullscreenPopGesture.h"
+#import "UIColor+Hex.h"
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 
 @interface TZGifPhotoPreviewController () {
+    UIView *_naviBar;
     UIView *_toolBar;
     UIButton *_doneButton;
     UIProgressView *_progress;
@@ -36,7 +39,11 @@
     if (tzImagePickerVc) {
         self.navigationItem.title = [NSString stringWithFormat:@"GIF %@",tzImagePickerVc.previewBtnTitleStr];
     }
+    
+    self.fd_prefersNavigationBarHidden = YES;
+    
     [self configPreviewView];
+    [self configNavBar];
     [self configBottomToolBar];
 }
 
@@ -49,6 +56,53 @@
 - (void)viewWillDisappear:(BOOL)animated {
     [super viewWillDisappear:animated];
     [UIApplication sharedApplication].statusBarStyle = _originStatusBarStyle;
+}
+
+- (void)configNavBar
+{
+    TZImagePickerController *tzImagePickerVc = (TZImagePickerController *)self.navigationController;
+
+    if (tzImagePickerVc.needExpression) {
+        
+        _naviBar = [[UIView alloc] initWithFrame:CGRectZero];
+        _naviBar.backgroundColor = [UIColor colorWithHexString:@"110F1C"];
+        [self.view addSubview:_naviBar];
+        
+        CGFloat statusBarHeight = [TZCommonTools tz_statusBarHeight];
+
+        UIButton * backButton = [[UIButton alloc] initWithFrame:CGRectMake(0, statusBarHeight, 40, 44)];
+        [backButton setImage:[UIImage imageNamed:@"backarrow"] forState:UIControlStateNormal];
+        [backButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+        [backButton addTarget:self action:@selector(backButtonClick) forControlEvents:UIControlEventTouchUpInside];
+        [_naviBar addSubview:backButton];
+
+        UILabel * titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(50, statusBarHeight, self.view.tz_width - 100, 44)];
+        titleLabel.font = [UIFont systemFontOfSize:16];
+        titleLabel.text = @"添加表情";
+        titleLabel.textColor = [UIColor whiteColor];
+        titleLabel.textAlignment = NSTextAlignmentCenter;
+        [_naviBar addSubview:titleLabel];
+        
+        UIButton * cancelBtn = [[UIButton alloc] initWithFrame:CGRectMake(self.view.tz_width - 50, statusBarHeight, 50, 44)];
+        [cancelBtn setTitle:@"取消" forState:UIControlStateNormal];
+        cancelBtn.titleLabel.font = [UIFont systemFontOfSize:14];
+        [cancelBtn addTarget:self action:@selector(cancelBtnClick) forControlEvents:UIControlEventTouchUpInside];
+        
+        [_naviBar addSubview:cancelBtn];
+        
+        UIView * lineView = [[UIView alloc] initWithFrame:CGRectMake(0, statusBarHeight + 44 - 0.5, self.view.tz_width, 0.5)];
+        lineView.backgroundColor = [UIColor blackColor];
+        [_naviBar addSubview:lineView];
+    }
+}
+
+- (void)backButtonClick {
+    [self.navigationController popViewControllerAnimated:YES];
+}
+
+- (void)cancelBtnClick
+{
+    [self dismissViewControllerAnimated:YES completion:nil];
 }
 
 - (void)configPreviewView {
@@ -80,19 +134,41 @@
     }
     [_toolBar addSubview:_doneButton];
     
-    UILabel *byteLabel = [[UILabel alloc] init];
-    byteLabel.textColor = [UIColor whiteColor];
-    byteLabel.font = [UIFont systemFontOfSize:13];
-    byteLabel.frame = CGRectMake(10, 0, 100, 44);
-    [[TZImageManager manager] getPhotosBytesWithArray:@[_model] completion:^(NSString *totalBytes) {
-        byteLabel.text = totalBytes;
-    }];
-    [_toolBar addSubview:byteLabel];
+    if (!tzImagePickerVc.needExpression) {
+        UILabel *byteLabel = [[UILabel alloc] init];
+        byteLabel.textColor = [UIColor whiteColor];
+        byteLabel.font = [UIFont systemFontOfSize:13];
+        byteLabel.frame = CGRectMake(10, 0, 100, 44);
+        [[TZImageManager manager] getPhotosBytesWithArray:@[_model] completion:^(NSString *totalBytes) {
+            byteLabel.text = totalBytes;
+        }];
+        [_toolBar addSubview:byteLabel];
+    }
     
     [self.view addSubview:_toolBar];
     
     if (tzImagePickerVc.gifPreviewPageUIConfigBlock) {
         tzImagePickerVc.gifPreviewPageUIConfigBlock(_toolBar, _doneButton);
+    }
+    
+    [self customConfigBottomToolBar];
+}
+
+- (void)customConfigBottomToolBar
+{
+    TZImagePickerController * _tzImagePickerVc = (TZImagePickerController *)self.navigationController;
+
+    if (_tzImagePickerVc.needExpression) {
+        
+        _toolBar.backgroundColor = [UIColor clearColor];
+        
+        _doneButton.frame = CGRectMake(self.view.tz_width - 97, 8, 82, 32);
+        _doneButton.titleLabel.font = [UIFont systemFontOfSize:14];
+        _doneButton.layer.cornerRadius = 2.5;
+        _doneButton.layer.masksToBounds = YES;
+        _doneButton.backgroundColor = [UIColor colorWithRed:124/255.0 green:119/255.0 blue:226/255.0 alpha:1];
+        
+        [_doneButton setTitle:@"确定" forState:UIControlStateNormal];
     }
 }
 
@@ -100,14 +176,22 @@
 
 - (void)viewDidLayoutSubviews {
     [super viewDidLayoutSubviews];
+    TZImagePickerController *tzImagePickerVc = (TZImagePickerController *)self.navigationController;
+
+    CGFloat statusBarHeight = [TZCommonTools tz_statusBarHeight];
+    
+    CGFloat naviBarHeight = statusBarHeight + tzImagePickerVc.navigationBar.tz_height;
+    _naviBar.frame = CGRectMake(0, 0, self.view.tz_width, naviBarHeight);
     
     _previewView.frame = self.view.bounds;
     _previewView.scrollView.frame = self.view.bounds;
     CGFloat toolBarHeight = [TZCommonTools tz_isIPhoneX] ? 44 + (83 - 49) : 44;
     _toolBar.frame = CGRectMake(0, self.view.tz_height - toolBarHeight, self.view.tz_width, toolBarHeight);
-    _doneButton.frame = CGRectMake(self.view.tz_width - 44 - 12, 0, 44, 44);
     
-    TZImagePickerController *tzImagePickerVc = (TZImagePickerController *)self.navigationController;
+    if (!tzImagePickerVc.needExpression) {
+        _doneButton.frame = CGRectMake(self.view.tz_width - 44 - 12, 0, 44, 44);
+    }
+    
     if (tzImagePickerVc.gifPreviewPageDidLayoutSubviewsBlock) {
         tzImagePickerVc.gifPreviewPageDidLayoutSubviewsBlock(_toolBar, _doneButton);
     }

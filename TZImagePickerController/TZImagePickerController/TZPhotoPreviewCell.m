@@ -14,13 +14,14 @@
 #import "TZImageCropManager.h"
 #import <MediaPlayer/MediaPlayer.h>
 #import "TZImagePickerController.h"
+#import "UIColor+Hex.h"
 
 @implementation TZAssetPreviewCell
 
 - (instancetype)initWithFrame:(CGRect)frame {
     self = [super initWithFrame:frame];
     if (self) {
-        self.backgroundColor = [UIColor blackColor];
+        self.backgroundColor = [UIColor colorWithHexString:@"110F1C"];
         [self configSubviews];
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(photoPreviewCollectionViewDidScroll) name:@"photoPreviewCollectionViewDidScroll" object:nil];
     }
@@ -49,12 +50,12 @@
 - (void)configSubviews {
     self.previewView = [[TZPhotoPreviewView alloc] initWithFrame:CGRectZero];
     __weak typeof(self) weakSelf = self;
-    [self.previewView setSingleTapGestureBlock:^{
-        __strong typeof(weakSelf) strongSelf = weakSelf;
-        if (strongSelf.singleTapGestureBlock) {
-            strongSelf.singleTapGestureBlock();
-        }
-    }];
+//    [self.previewView setSingleTapGestureBlock:^{
+//        __strong typeof(weakSelf) strongSelf = weakSelf;
+//        if (strongSelf.singleTapGestureBlock) {
+//            strongSelf.singleTapGestureBlock();
+//        }
+//    }];
     [self.previewView setImageProgressUpdateBlock:^(double progress) {
         __strong typeof(weakSelf) strongSelf = weakSelf;
         if (strongSelf.imageProgressUpdateBlock) {
@@ -100,6 +101,7 @@
 - (instancetype)initWithFrame:(CGRect)frame {
     self = [super initWithFrame:frame];
     if (self) {
+        self.backgroundColor = [UIColor colorWithHexString:@"110F1C"];
         _scrollView = [[UIScrollView alloc] init];
         _scrollView.bouncesZoom = YES;
         _scrollView.maximumZoomScale = 2.5;
@@ -313,9 +315,9 @@
 }
 
 - (void)singleTap:(UITapGestureRecognizer *)tap {
-    if (self.singleTapGestureBlock) {
-        self.singleTapGestureBlock();
-    }
+//    if (self.singleTapGestureBlock) {
+//        self.singleTapGestureBlock();
+//    }
 }
 
 #pragma mark - UIScrollViewDelegate

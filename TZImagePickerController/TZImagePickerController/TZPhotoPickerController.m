@@ -45,7 +45,7 @@
 @end
 
 static CGSize AssetGridThumbnailSize;
-static CGFloat itemMargin = 5;
+static CGFloat itemMargin = 1;
 
 @implementation TZPhotoPickerController
 
@@ -89,6 +89,8 @@ static CGFloat itemMargin = 5;
         [leftButton addTarget:self action:@selector(navLeftBarButtonClick) forControlEvents:UIControlEventTouchUpInside];
         tzImagePickerVc.navLeftBarButtonSettingBlock(leftButton);
         self.navigationItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:leftButton];
+    } else if (tzImagePickerVc.childViewControllers.count) {
+        [tzImagePickerVc.childViewControllers firstObject].navigationItem.backBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:[NSBundle tz_localizedStringForKey:@"Back"] style:UIBarButtonItemStylePlain target:nil action:nil];
     }
     _showTakePhotoBtn = _model.isCameraRoll && ((tzImagePickerVc.allowTakePicture && tzImagePickerVc.allowPickingImage) || (tzImagePickerVc.allowTakeVideo && tzImagePickerVc.allowPickingVideo));
     // [self resetCachedAssets];
@@ -245,7 +247,7 @@ static CGFloat itemMargin = 5;
     _numberLabel.font = [UIFont systemFontOfSize:15];
     _numberLabel.textColor = [UIColor whiteColor];
     _numberLabel.textAlignment = NSTextAlignmentCenter;
-    _numberLabel.text = [NSString stringWithFormat:@"%zd",tzImagePickerVc.selectedModels.count];
+    _numberLabel.text = [NSString stringWithFormat:@"%ld",tzImagePickerVc.selectedModels.count];
     _numberLabel.hidden = tzImagePickerVc.selectedModels.count <= 0;
     _numberLabel.backgroundColor = [UIColor clearColor];
     
@@ -265,6 +267,41 @@ static CGFloat itemMargin = 5;
     if (tzImagePickerVc.photoPickerPageUIConfigBlock) {
         tzImagePickerVc.photoPickerPageUIConfigBlock(_collectionView, _bottomToolBar, _previewButton, _originalPhotoButton, _originalPhotoLabel, _doneButton, _numberImageView, _numberLabel, _divideLine);
     }
+    [self configCustomBottomToolBar];
+}
+
+// YangBo
+- (void)configCustomBottomToolBar
+{
+    TZImagePickerController *_tzImagePickerVc = (TZImagePickerController *)self.navigationController;
+    
+    _doneButton.frame = CGRectMake(self.view.tz_width - 97, 8, 82, 32);
+    _doneButton.titleLabel.font = [UIFont systemFontOfSize:13];
+    _doneButton.layer.cornerRadius = 2.5;
+    _doneButton.layer.masksToBounds = YES;
+    if (_tzImagePickerVc.maxImagesCount == 9) {
+        [_doneButton setTitle:@"发送" forState:UIControlStateNormal];
+        [_doneButton setTitle:@"发送" forState:UIControlStateDisabled];
+    } else {
+        [_doneButton setTitle:@"上传" forState:UIControlStateNormal];
+        [_doneButton setTitle:@"上传" forState:UIControlStateDisabled];
+    }
+    [_doneButton setTitleColor:_tzImagePickerVc.oKButtonTitleColorNormal forState:UIControlStateNormal];
+    [_doneButton setTitleColor:_tzImagePickerVc.oKButtonTitleColorDisabled forState:UIControlStateDisabled];
+    _doneButton.enabled = _tzImagePickerVc.selectedModels.count || _tzImagePickerVc.alwaysEnableDoneBtn;
+    _doneButton.backgroundColor = [UIColor colorWithRed:124/255.0 green:119/255.0 blue:226/255.0 alpha:1];
+    
+    _numberImageView.hidden = YES;
+    _divideLine.hidden = YES;
+    _previewButton.hidden = YES;
+    
+    _numberLabel.frame = CGRectMake(15, 0, self.view.tz_width / 2, 48);
+    _numberLabel.text = [NSString stringWithFormat:@"还可上传%ld张，上限%ld张",  (_tzImagePickerVc.maxImagesCount - _tzImagePickerVc.selectedModels.count), _tzImagePickerVc.maxImagesCount];
+    _numberLabel.font = [UIFont systemFontOfSize:12];
+    _numberLabel.backgroundColor = [UIColor clearColor];
+    _numberLabel.textColor = [UIColor colorWithRed:155/255.0 green:155/255.0 blue:155/255.0 alpha:1];
+    _numberLabel.textAlignment = NSTextAlignmentLeft;
+    _numberLabel.hidden = NO;
 }
 
 #pragma mark - Layout
@@ -317,10 +354,6 @@ static CGFloat itemMargin = 5;
         _originalPhotoButton.frame = CGRectMake(CGRectGetMaxX(_previewButton.frame), 0, fullImageWidth + 56, 50);
         _originalPhotoLabel.frame = CGRectMake(fullImageWidth + 46, 0, 80, 50);
     }
-    [_doneButton sizeToFit];
-    _doneButton.frame = CGRectMake(self.view.tz_width - _doneButton.tz_width - 12, 0, _doneButton.tz_width, 50);
-    _numberImageView.frame = CGRectMake(_doneButton.tz_left - 24 - 5, 13, 24, 24);
-    _numberLabel.frame = _numberImageView.frame;
     _divideLine.frame = CGRectMake(0, 0, self.view.tz_width, 1);
     
     [TZImageManager manager].columnNumber = [TZImageManager manager].columnNumber;
@@ -531,7 +564,7 @@ static CGFloat itemMargin = 5;
                     break;
                 }
             }
-            [strongSelf refreshBottomToolBarStatus];
+            [strongSelf customRefreshBottomToolBarStatus];
             if (tzImagePickerVc.showSelectedIndex || tzImagePickerVc.showPhotoCannotSelectLayer) {
                 [strongSelf setUseCachedImageAndReloadData];
             }
@@ -539,6 +572,12 @@ static CGFloat itemMargin = 5;
         } else {
             // 2. select:check if over the maxImagesCount / 选择照片,检查是否超过了最大个数的限制
             if (tzImagePickerVc.selectedModels.count < tzImagePickerVc.maxImagesCount) {
+                if (tzImagePickerVc.maxImagesCount == 1 && !tzImagePickerVc.allowPreview) {
+                    model.isSelected = YES;
+                    [tzImagePickerVc addSelectedModel:model];
+                    [strongSelf doneButtonClick];
+                    return;
+                }
                 strongCell.selectPhotoButton.selected = YES;
                 model.isSelected = YES;
                 if (tzImagePickerVc.showSelectedIndex || tzImagePickerVc.showPhotoCannotSelectLayer) {
@@ -546,7 +585,7 @@ static CGFloat itemMargin = 5;
                     [strongSelf setUseCachedImageAndReloadData];
                 }
                 [tzImagePickerVc addSelectedModel:model];
-                [strongSelf refreshBottomToolBarStatus];
+                [strongSelf customRefreshBottomToolBarStatus];
                 [UIView showOscillatoryAnimationWithLayer:strongLayer type:TZOscillatoryAnimationToSmaller];
             } else {
                 NSString *title = [NSString stringWithFormat:[NSBundle tz_localizedStringForKey:@"Select a maximum of %zd photos"], tzImagePickerVc.maxImagesCount];
@@ -696,8 +735,35 @@ static CGFloat itemMargin = 5;
     
     _numberImageView.hidden = tzImagePickerVc.selectedModels.count <= 0;
     _numberLabel.hidden = tzImagePickerVc.selectedModels.count <= 0;
-    _numberLabel.text = [NSString stringWithFormat:@"%zd",tzImagePickerVc.selectedModels.count];
+    _numberLabel.text = [NSString stringWithFormat:@"%ld",tzImagePickerVc.selectedModels.count];
     
+    _originalPhotoButton.enabled = tzImagePickerVc.selectedModels.count > 0;
+    _originalPhotoButton.selected = (_isSelectOriginalPhoto && _originalPhotoButton.enabled);
+    _originalPhotoLabel.hidden = (!_originalPhotoButton.isSelected);
+    if (_isSelectOriginalPhoto) [self getSelectedPhotoBytes];
+}
+
+// YangBo
+- (void)customRefreshBottomToolBarStatus {
+    TZImagePickerController *tzImagePickerVc = (TZImagePickerController *)self.navigationController;
+    
+    _previewButton.enabled = tzImagePickerVc.selectedModels.count > 0;
+    
+    // YangBo(包起来的地方)
+    _doneButton.enabled = tzImagePickerVc.selectedModels.count > 0 || tzImagePickerVc.alwaysEnableDoneBtn;
+    if (tzImagePickerVc.maxImagesCount == 9) {
+        [_doneButton setTitle:[NSString stringWithFormat:@"发送(%ld)",tzImagePickerVc.selectedModels.count] forState:UIControlStateNormal];
+        [_doneButton setTitle:[NSString stringWithFormat:@"发送(%ld)",tzImagePickerVc.selectedModels.count] forState:UIControlStateSelected];
+        _numberLabel.text = [NSString stringWithFormat:@"还可发送%ld张，上限%ld张",  (tzImagePickerVc.maxImagesCount - tzImagePickerVc.selectedModels.count), tzImagePickerVc.maxImagesCount];
+    } else {
+        [_doneButton setTitle:[NSString stringWithFormat:@"上传(%ld)",tzImagePickerVc.selectedModels.count] forState:UIControlStateNormal];
+        
+        [_doneButton setTitle:[NSString stringWithFormat:@"上传(%ld)",tzImagePickerVc.selectedModels.count] forState:UIControlStateSelected];
+        
+        _numberLabel.text = [NSString stringWithFormat:@"还可上传%ld张，上限%ld张",  (tzImagePickerVc.maxImagesCount - tzImagePickerVc.selectedModels.count), tzImagePickerVc.maxImagesCount];
+    }
+    // YangBo
+
     _originalPhotoButton.enabled = tzImagePickerVc.selectedModels.count > 0;
     _originalPhotoButton.selected = (_isSelectOriginalPhoto && _originalPhotoButton.enabled);
     _originalPhotoLabel.hidden = (!_originalPhotoButton.isSelected);
@@ -718,7 +784,7 @@ static CGFloat itemMargin = 5;
             [strongSelf checkSelectedModels];
         }
         [strongSelf.collectionView reloadData];
-        [strongSelf refreshBottomToolBarStatus];
+        [strongSelf customRefreshBottomToolBarStatus];
     }];
     [photoPreviewVc setDoneButtonClickBlock:^(BOOL isSelectOriginalPhoto) {
         __strong typeof(weakSelf) strongSelf = weakSelf;
@@ -858,7 +924,7 @@ static CGFloat itemMargin = 5;
                 } else {
                     assetModel.isSelected = YES;
                     [tzImagePickerVc addSelectedModel:assetModel];
-                    [self refreshBottomToolBarStatus];
+                    [self customRefreshBottomToolBarStatus];
                 }
             }
             self->_collectionView.hidden = YES;

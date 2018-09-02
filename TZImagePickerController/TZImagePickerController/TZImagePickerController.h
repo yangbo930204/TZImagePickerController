@@ -4,7 +4,7 @@
 //
 //  Created by 谭真 on 15/12/24.
 //  Copyright © 2015年 谭真. All rights reserved.
-//  version 2.1.9 - 2018.07.12
+//  version 2.2.2 - 2018.07.16
 //  更多信息，请前往项目的github地址：https://github.com/banchichen/TZImagePickerController
 
 /*
@@ -162,6 +162,7 @@
 @property (nonatomic, assign) CGRect cropRectPortrait;   ///< 裁剪框的尺寸(竖屏)
 @property (nonatomic, assign) CGRect cropRectLandscape;  ///< 裁剪框的尺寸(横屏)
 @property (nonatomic, assign) BOOL needCircleCrop;       ///< 需要圆形裁剪框
+@property (nonatomic, assign) BOOL needExpression;       ///< 需要添加表情
 @property (nonatomic, assign) NSInteger circleCropRadius;  ///< 圆形裁剪框半径大小
 @property (nonatomic, copy) void (^cropViewSettingBlock)(UIView *cropView);     ///< 自定义裁剪框的其他属性
 @property (nonatomic, copy) void (^navLeftBarButtonSettingBlock)(UIButton *leftButton);     ///< 自定义返回按钮样式及其属性
