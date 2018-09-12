@@ -12,8 +12,7 @@
 #import "UIView+Layout.h"
 #import "TZPhotoPreviewCell.h"
 #import "TZImageManager.h"
-//#import "UINavigationController+FDFullscreenPopGesture.h"
-//#import "UIColor+Hex.h"
+#import "UINavigationController+FDFullscreenPopGesture.h"
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
@@ -40,7 +39,7 @@
         self.navigationItem.title = [NSString stringWithFormat:@"GIF %@",tzImagePickerVc.previewBtnTitleStr];
     }
     
-//    self.fd_prefersNavigationBarHidden = YES;
+    self.fd_prefersNavigationBarHidden = YES;
     
     [self configPreviewView];
     [self configNavBar];
@@ -65,8 +64,8 @@
     if (tzImagePickerVc.needExpression) {
         
         _naviBar = [[UIView alloc] initWithFrame:CGRectZero];
-//        _naviBar.backgroundColor = [UIColor colorWithHexString:@"110F1C"];
-        
+        _naviBar.backgroundColor = [UIColor colorWithRed:(17/255.0) green:(15/255.0) blue:(28/255.0) alpha:1.0];
+
         [self.view addSubview:_naviBar];
         
         CGFloat statusBarHeight = [TZCommonTools tz_statusBarHeight];

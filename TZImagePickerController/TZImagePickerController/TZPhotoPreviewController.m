@@ -13,8 +13,7 @@
 #import "TZImagePickerController.h"
 #import "TZImageManager.h"
 #import "TZImageCropManager.h"
-//#import "UINavigationController+FDFullscreenPopGesture.h"
-//#import "UIColor+Hex.h"
+#import "UINavigationController+FDFullscreenPopGesture.h"
 
 @interface TZPhotoPreviewController ()<UICollectionViewDataSource,UICollectionViewDelegate,UIScrollViewDelegate> {
     UICollectionView *_collectionView;
@@ -51,7 +50,7 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-//    self.fd_prefersNavigationBarHidden = YES;
+    self.fd_prefersNavigationBarHidden = YES;
     [TZImageManager manager].shouldFixOrientation = YES;
     TZImagePickerController *_tzImagePickerVc = (TZImagePickerController *)self.navigationController;
     if (!_didSetIsSelectOriginalPhoto) {
@@ -170,7 +169,7 @@
         [_naviBar addSubview:_currentIndexLabel];
         
         if (_tzImagePickerVc.needExpression) {
-//            _naviBar.backgroundColor = [UIColor colorWithHexString:@"110F1C"];
+            _naviBar.backgroundColor = [UIColor colorWithRed:(17/255.0) green:(15/255.0) blue:(28/255.0) alpha:1.0];
 
             _currentIndexLabel.text = @"添加表情";
             
