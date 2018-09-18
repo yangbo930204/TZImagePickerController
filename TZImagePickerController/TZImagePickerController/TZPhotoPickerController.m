@@ -701,7 +701,6 @@ static CGFloat itemMargin = 1;
             self.imagePickerVc.videoMaximumDuration = tzImagePickerVc.videoMaximumDuration;
         }
         self.imagePickerVc.mediaTypes= mediaTypes;
-        _imagePickerVc.modalPresentationStyle = UIModalPresentationOverCurrentContext;
         if (tzImagePickerVc.uiImagePickerControllerSettingBlock) {
             tzImagePickerVc.uiImagePickerControllerSettingBlock(_imagePickerVc);
         }
