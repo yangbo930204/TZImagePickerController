@@ -12,7 +12,7 @@
 #import "UIView+Layout.h"
 #import "TZPhotoPreviewCell.h"
 #import "TZImageManager.h"
-#import "UINavigationController+FDFullscreenPopGesture.h"
+//#import "UINavigationController+FDFullscreenPopGesture.h"
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
@@ -39,7 +39,7 @@
         self.navigationItem.title = [NSString stringWithFormat:@"GIF %@",tzImagePickerVc.previewBtnTitleStr];
     }
     
-    self.fd_prefersNavigationBarHidden = YES;
+//    self.fd_prefersNavigationBarHidden = YES;
     
     [self configPreviewView];
     [self configNavBar];

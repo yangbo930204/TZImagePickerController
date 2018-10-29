@@ -13,7 +13,7 @@
 #import "TZImagePickerController.h"
 #import "TZImageManager.h"
 #import "TZImageCropManager.h"
-#import "UINavigationController+FDFullscreenPopGesture.h"
+//#import "UINavigationController+FDFullscreenPopGesture.h"
 
 @interface TZPhotoPreviewController ()<UICollectionViewDataSource,UICollectionViewDelegate,UIScrollViewDelegate> {
     UICollectionView *_collectionView;
@@ -50,7 +50,7 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.fd_prefersNavigationBarHidden = YES;
+//    self.fd_prefersNavigationBarHidden = YES;
     [TZImageManager manager].shouldFixOrientation = YES;
     TZImagePickerController *_tzImagePickerVc = (TZImagePickerController *)self.navigationController;
     if (!_didSetIsSelectOriginalPhoto) {

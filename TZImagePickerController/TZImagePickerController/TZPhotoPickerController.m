@@ -753,8 +753,8 @@ static CGFloat itemMargin = 1;
         
         _numberLabel.text = [NSString stringWithFormat:@"还可上传%ld张，上限%ld张",  (tzImagePickerVc.maxImagesCount - tzImagePickerVc.selectedModels.count), tzImagePickerVc.maxImagesCount];
     }
+    
     // YangBo
-
     _originalPhotoButton.enabled = tzImagePickerVc.selectedModels.count > 0;
     _originalPhotoButton.selected = (_isSelectOriginalPhoto && _originalPhotoButton.enabled);
     _originalPhotoLabel.hidden = (!_originalPhotoButton.isSelected);
@@ -909,6 +909,10 @@ static CGFloat itemMargin = 1;
             assetModel.isSelected = YES;
             [tzImagePickerVc addSelectedModel:assetModel];
             [self refreshBottomToolBarStatus];
+            if (!_numberImageView.isHidden) {
+                _numberImageView.hidden = YES;
+            }
+            [self customRefreshBottomToolBarStatus];
         }
     }
     _collectionView.hidden = YES;
