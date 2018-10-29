@@ -4,7 +4,7 @@
 //
 //  Created by 谭真 on 15/12/24.
 //  Copyright © 2015年 谭真. All rights reserved.
-//  version 3.0.8 - 2018.09.27
+//  version 3.0.9 - 2018.10.09
 //  更多信息，请前往项目的github地址：https://github.com/banchichen/TZImagePickerController
 
 #import "TZImagePickerController.h"
@@ -861,6 +861,21 @@
     }
     return infoDict ? infoDict : @{};
 }
+
++ (BOOL)isRightToLeftLayout {
+    if (@available(iOS 9.0, *)) {
+        if ([UIView userInterfaceLayoutDirectionForSemanticContentAttribute:UISemanticContentAttributeUnspecified] == UIUserInterfaceLayoutDirectionRightToLeft) {
+            return YES;
+        }
+    } else {
+        NSString *preferredLanguage = [NSLocale preferredLanguages].firstObject;
+        if ([preferredLanguage hasPrefix:@"ar-"]) {
+            return YES;
+        }
+    }
+    return NO;
+}
+
 @end
 
 
