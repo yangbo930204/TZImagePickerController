@@ -85,7 +85,9 @@
     if (_currentIndex) {
         [_collectionView setContentOffset:CGPointMake((self.view.tz_width + 20) * self.currentIndex, 0) animated:NO];
     }
-    [self refreshNaviBarAndBottomBarState];
+    [self customRefreshNaviBarAndBottomBarState];
+
+//    [self refreshNaviBarAndBottomBarState];
 }
 
 - (void)viewWillDisappear:(BOOL)animated {
@@ -267,13 +269,13 @@
         _doneButton.layer.cornerRadius = 2.5;
         _doneButton.layer.masksToBounds = YES;
         _doneButton.backgroundColor = [UIColor colorWithRed:124/255.0 green:119/255.0 blue:226/255.0 alpha:1];
+        _numberImageView.hidden = YES;
 
         if (_tzImagePickerVc.needExpression) {
 
             _toolBar.backgroundColor = [UIColor clearColor];
             
             _numberLabel.hidden = YES;
-            _numberImageView.hidden = YES;
             
             [_doneButton setTitle:@"确定" forState:UIControlStateNormal];
             
@@ -289,7 +291,6 @@
             [_doneButton setTitleColor:_tzImagePickerVc.oKButtonTitleColorDisabled forState:UIControlStateDisabled];
             _doneButton.enabled = _tzImagePickerVc.selectedModels.count || _tzImagePickerVc.alwaysEnableDoneBtn;
             
-            _numberImageView.hidden = YES;
             
             _numberLabel.frame = CGRectMake(15, 0, self.view.tz_width / 2, 48);
             _numberLabel.text = [NSString stringWithFormat:@"还可上传%ld张，上限%ld张",  (_tzImagePickerVc.maxImagesCount - _tzImagePickerVc.selectedModels.count), _tzImagePickerVc.maxImagesCount];
