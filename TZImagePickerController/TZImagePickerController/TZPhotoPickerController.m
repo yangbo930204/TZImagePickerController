@@ -292,12 +292,12 @@ static CGFloat itemMargin = 1;
     _doneButton.titleLabel.font = [UIFont systemFontOfSize:13];
     _doneButton.layer.cornerRadius = 2.5;
     _doneButton.layer.masksToBounds = YES;
-    if (_tzImagePickerVc.maxImagesCount == 9) {
-        [_doneButton setTitle:@"发送" forState:UIControlStateNormal];
-        [_doneButton setTitle:@"发送" forState:UIControlStateDisabled];
-    } else {
+    if (_tzImagePickerVc.sendBtnType == 1) {
         [_doneButton setTitle:@"上传" forState:UIControlStateNormal];
         [_doneButton setTitle:@"上传" forState:UIControlStateDisabled];
+    } else {
+        [_doneButton setTitle:@"发送" forState:UIControlStateNormal];
+        [_doneButton setTitle:@"发送" forState:UIControlStateDisabled];
     }
     [_doneButton setTitleColor:_tzImagePickerVc.oKButtonTitleColorNormal forState:UIControlStateNormal];
     [_doneButton setTitleColor:_tzImagePickerVc.oKButtonTitleColorDisabled forState:UIControlStateDisabled];

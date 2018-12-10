@@ -62,6 +62,8 @@
     self.navigationBar.tintColor = [UIColor whiteColor];
     self.automaticallyAdjustsScrollViewInsets = NO;
     if (self.needShowStatusBar) [UIApplication sharedApplication].statusBarHidden = NO;
+    
+    self.sendBtnType = 1;
 }
 
 - (void)setNaviBgColor:(UIColor *)naviBgColor {

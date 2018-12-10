@@ -44,6 +44,9 @@
 /// Default is 9 / 默认最大可选9张图片
 @property (nonatomic, assign) NSInteger maxImagesCount;
 
+/// 1:上传，2:发送
+@property (nonatomic, assign) NSInteger sendBtnType;
+
 /// The minimum count photos user must pick, Default is 0
 /// 最小照片必选张数,默认是0
 @property (nonatomic, assign) NSInteger minImagesCount;
