@@ -742,7 +742,7 @@ static CGFloat itemMargin = 1;
     
     // YangBo(包起来的地方)
     _doneButton.enabled = tzImagePickerVc.selectedModels.count > 0 || tzImagePickerVc.alwaysEnableDoneBtn;
-    if (tzImagePickerVc.maxImagesCount == 9) {
+    if (tzImagePickerVc.sendBtnType == 2) {
         [_doneButton setTitle:[NSString stringWithFormat:@"发送(%ld)",tzImagePickerVc.selectedModels.count] forState:UIControlStateNormal];
         [_doneButton setTitle:[NSString stringWithFormat:@"发送(%ld)",tzImagePickerVc.selectedModels.count] forState:UIControlStateSelected];
         _numberLabel.text = [NSString stringWithFormat:@"还可发送%ld张，上限%ld张",  (tzImagePickerVc.maxImagesCount - tzImagePickerVc.selectedModels.count), tzImagePickerVc.maxImagesCount];

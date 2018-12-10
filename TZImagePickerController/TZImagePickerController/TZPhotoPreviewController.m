@@ -280,7 +280,7 @@
             [_doneButton setTitle:@"确定" forState:UIControlStateNormal];
             
         } else {
-            if (_tzImagePickerVc.maxImagesCount == 9) {
+            if (_tzImagePickerVc.sendBtnType == 2) {
                 [_doneButton setTitle:@"发送" forState:UIControlStateNormal];
                 [_doneButton setTitle:@"发送" forState:UIControlStateDisabled];
             } else {
@@ -686,7 +686,7 @@
         _doneButton.enabled = YES;
     } else {
         _doneButton.enabled = _tzImagePickerVc.selectedModels.count > 0 || _tzImagePickerVc.alwaysEnableDoneBtn;
-        if (_tzImagePickerVc.maxImagesCount == 9) {
+        if (_tzImagePickerVc.sendBtnType == 2) {
             [_doneButton setTitle:[NSString stringWithFormat:@"发送(%ld)",_tzImagePickerVc.selectedModels.count] forState:UIControlStateNormal];
             [_doneButton setTitle:[NSString stringWithFormat:@"发送(%ld)",_tzImagePickerVc.selectedModels.count] forState:UIControlStateSelected];
             _numberLabel.text = [NSString stringWithFormat:@"还可发送%ld张，上限%ld张",  (_tzImagePickerVc.maxImagesCount - _tzImagePickerVc.selectedModels.count), _tzImagePickerVc.maxImagesCount];
