@@ -650,6 +650,7 @@ static CGFloat itemMargin = 1;
         } else {
             TZGifPhotoPreviewController *gifPreviewVc = [[TZGifPhotoPreviewController alloc] init];
             gifPreviewVc.model = model;
+            gifPreviewVc.isShowOnlyGif = self.isShowOnlyGif;
             [self.navigationController pushViewController:gifPreviewVc animated:YES];
         }
     } else {
@@ -844,10 +845,19 @@ static CGFloat itemMargin = 1;
     for (TZAssetModel *model in tzImagePickerVc.selectedModels) {
         [selectedAssets addObject:model.asset];
     }
-    for (TZAssetModel *model in _models) {
-        model.isSelected = NO;
-        if ([selectedAssets containsObject:model.asset]) {
-            model.isSelected = YES;
+    for (int i = 0; i < self->_models.count; i++) {
+        TZAssetModel * model = self->_models[i];
+        
+        if (self->_isShowOnlyGif) {
+            
+            if (model.type != TZAssetModelMediaTypePhotoGif) {
+                [self->_models removeObject:model];
+                i--;
+            }
+        } else {
+            if ([selectedAssets containsObject:model.asset]) {
+                model.isSelected = YES;
+            }
         }
     }
 }
