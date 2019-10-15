@@ -20,6 +20,7 @@
 #import "TZAssetCell.h"
 #import <MobileCoreServices/MobileCoreServices.h>
 #import "FLAnimatedImage.h"
+#import "TZImageUploadOperation.h"
 
 @interface ViewController ()<TZImagePickerControllerDelegate,UICollectionViewDataSource,UICollectionViewDelegate,UIImagePickerControllerDelegate,UIAlertViewDelegate,UINavigationControllerDelegate> {
     NSMutableArray *_selectedPhotos;
@@ -33,6 +34,8 @@
 @property (nonatomic, strong) UICollectionView *collectionView;
 @property (strong, nonatomic) LxGridViewFlowLayout *layout;
 @property (strong, nonatomic) CLLocation *location;
+
+@property (nonatomic, strong) NSOperationQueue *operationQueue;
 
 @property (weak, nonatomic) IBOutlet UIScrollView *scrollView;
 // 设置开关
@@ -198,11 +201,13 @@
             TZGifPhotoPreviewController *vc = [[TZGifPhotoPreviewController alloc] init];
             TZAssetModel *model = [TZAssetModel modelWithAsset:asset type:TZAssetModelMediaTypePhotoGif timeLength:@""];
             vc.model = model;
+            vc.modalPresentationStyle = UIModalPresentationFullScreen;
             [self presentViewController:vc animated:YES completion:nil];
         } else if (isVideo && !self.allowPickingMuitlpleVideoSwitch.isOn) { // perview video / 预览视频
             TZVideoPlayerController *vc = [[TZVideoPlayerController alloc] init];
             TZAssetModel *model = [TZAssetModel modelWithAsset:asset type:TZAssetModelMediaTypeVideo timeLength:@""];
             vc.model = model;
+            vc.modalPresentationStyle = UIModalPresentationFullScreen;
             [self presentViewController:vc animated:YES completion:nil];
         } else { // preview photos / 预览照片
             TZImagePickerController *imagePickerVc = [[TZImagePickerController alloc] initWithSelectedAssets:_selectedAssets selectedPhotos:_selectedPhotos index:indexPath.item];
@@ -212,6 +217,7 @@
             imagePickerVc.allowPickingMultipleVideo = self.allowPickingMuitlpleVideoSwitch.isOn;
             imagePickerVc.showSelectedIndex = self.showSelectedIndexSwitch.isOn;
             imagePickerVc.isSelectOriginalPhoto = _isSelectOriginalPhoto;
+            imagePickerVc.modalPresentationStyle = UIModalPresentationFullScreen;
             [imagePickerVc setDidFinishPickingPhotosHandle:^(NSArray<UIImage *> *photos, NSArray *assets, BOOL isSelectOriginalPhoto) {
                 self->_selectedPhotos = [NSMutableArray arrayWithArray:photos];
                 self->_selectedAssets = [NSMutableArray arrayWithArray:assets];
@@ -254,6 +260,8 @@
         return;
     }
     TZImagePickerController *imagePickerVc = [[TZImagePickerController alloc] initWithMaxImagesCount:self.maxCountTF.text.integerValue columnNumber:self.columnNumberTF.text.integerValue delegate:self pushPhotoPickerVc:YES];
+    // imagePickerVc.barItemTextColor = [UIColor redColor];
+    // imagePickerVc.naviBgColor = [UIColor whiteColor];
     // imagePickerVc.navigationBar.translucent = NO;
     
 #pragma mark - 五类个性化设置，这些参数都可以不传，此时会走默认设置
@@ -270,7 +278,8 @@
         imagePickerController.videoQuality = UIImagePickerControllerQualityTypeHigh;
     }];
     
-    // imagePickerVc.photoWidth = 1000;
+    // imagePickerVc.photoWidth = 1600;
+    // imagePickerVc.photoPreviewMaxWidth = 1600;
     
     // 2. Set the appearance
     // 2. 在这里设置imagePickerVc的外观
@@ -318,6 +327,7 @@
     NSInteger widthHeight = self.view.tz_width - 2 * left;
     NSInteger top = (self.view.tz_height - widthHeight) / 2;
     imagePickerVc.cropRect = CGRectMake(left, top, widthHeight, widthHeight);
+    imagePickerVc.scaleAspectFillCrop = YES;
     // 设置横屏下的裁剪尺寸
     // imagePickerVc.cropRectLandscape = CGRectMake((self.view.tz_height - widthHeight) / 2, left, widthHeight, widthHeight);
     /*
@@ -376,6 +386,7 @@
 
     }];
     
+    imagePickerVc.modalPresentationStyle = UIModalPresentationFullScreen;
     [self presentViewController:imagePickerVc animated:YES completion:nil];
 }
 
@@ -460,9 +471,9 @@
     [tzImagePickerVc showProgressHUD];
     if ([type isEqualToString:@"public.image"]) {
         UIImage *image = [info objectForKey:UIImagePickerControllerOriginalImage];
-        
+        NSDictionary *meta = [info objectForKey:UIImagePickerControllerMediaMetadata];
         // save photo and get asset / 保存图片，获取到asset
-        [[TZImageManager manager] savePhotoWithImage:image location:self.location completion:^(PHAsset *asset, NSError *error){
+        [[TZImageManager manager] savePhotoWithImage:image meta:meta location:self.location completion:^(PHAsset *asset, NSError *error){
             [tzImagePickerVc hideProgressHUD];
             if (error) {
                 NSLog(@"图片保存失败 %@",error);
@@ -556,25 +567,20 @@
         NSLog(@"location:%@",phAsset.location);
     }
     
-    /*
-    // 3. 获取原图的示例，这样一次性获取很可能会导致内存飙升，建议获取1-2张，消费和释放掉，再获取剩下的
-    __block NSMutableArray *originalPhotos = [NSMutableArray array];
-    __block NSInteger finishCount = 0;
-    for (NSInteger i = 0; i < assets.count; i++) {
-        [originalPhotos addObject:@1];
-    }
+    // 3. 获取原图的示例，用队列限制最大并发为1，避免内存暴增
+    self.operationQueue = [[NSOperationQueue alloc] init];
+    self.operationQueue.maxConcurrentOperationCount = 1;
     for (NSInteger i = 0; i < assets.count; i++) {
         PHAsset *asset = assets[i];
-        PHImageRequestID requestId = [[TZImageManager manager] getOriginalPhotoWithAsset:asset completion:^(UIImage *photo, NSDictionary *info) {
-            finishCount += 1;
-            [originalPhotos replaceObjectAtIndex:i withObject:photo];
-            if (finishCount >= assets.count) {
-                NSLog(@"All finished.");
-            }
+        // 图片上传operation，上传代码请写到operation内的start方法里，内有注释
+        TZImageUploadOperation *operation = [[TZImageUploadOperation alloc] initWithAsset:asset completion:^(UIImage * photo, NSDictionary *info, BOOL isDegraded) {
+            if (isDegraded) return;
+            NSLog(@"图片获取&上传完成");
+        } progressHandler:^(double progress, NSError * _Nonnull error, BOOL * _Nonnull stop, NSDictionary * _Nonnull info) {
+            NSLog(@"获取原图进度 %f", progress);
         }];
-        NSLog(@"requestId: %d", requestId);
+        [self.operationQueue addOperation:operation];
     }
-     */
 }
 
 // If user picking a video and allowPickingMultipleVideo is NO, this callback will be called.
@@ -585,7 +591,8 @@
     _selectedPhotos = [NSMutableArray arrayWithArray:@[coverImage]];
     _selectedAssets = [NSMutableArray arrayWithArray:@[asset]];
     // open this code to send video / 打开这段代码发送视频
-    [[TZImageManager manager] getVideoOutputPathWithAsset:asset presetName:AVAssetExportPreset640x480 success:^(NSString *outputPath) {
+    [[TZImageManager manager] getVideoOutputPathWithAsset:asset presetName:AVAssetExportPresetLowQuality success:^(NSString *outputPath) {
+        // NSData *data = [NSData dataWithContentsOfFile:outputPath];
         NSLog(@"视频导出到本地完成,沙盒路径为:%@",outputPath);
         // Export completed, send video here, send by outputPath or NSData
         // 导出完成，在这里写上传代码，通过路径或者通过NSData上传

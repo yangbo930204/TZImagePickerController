@@ -78,6 +78,11 @@
     _previewView.allowCrop = allowCrop;
 }
 
+- (void)setScaleAspectFillCrop:(BOOL)scaleAspectFillCrop {
+    _scaleAspectFillCrop = scaleAspectFillCrop;
+    _previewView.scaleAspectFillCrop = scaleAspectFillCrop;
+}
+
 - (void)setCropRect:(CGRect)cropRect {
     _cropRect = cropRect;
     _previewView.cropRect = cropRect;
@@ -203,6 +208,20 @@
         if (![asset isEqual:self->_asset]) return;
         self.imageView.image = photo;
         [self resizeSubviews];
+        if (self.imageView.tz_height && self.allowCrop) {
+            CGFloat scale = MAX(self.cropRect.size.width / self.imageView.tz_width, self.cropRect.size.height / self.imageView.tz_height);
+            if (self.scaleAspectFillCrop) { // 如果设置图片缩放裁剪并且图片需要缩放
+                if (scale > 1) {
+                    CGFloat multiple = self.scrollView.maximumZoomScale / self.scrollView.minimumZoomScale;
+                    self.scrollView.minimumZoomScale = scale;
+                    self.scrollView.maximumZoomScale = scale * MAX(multiple, 2);
+                    [self.scrollView setZoomScale:scale animated:YES];
+                } else {
+                    self.scrollView.minimumZoomScale = scale;
+                }
+            }
+        }
+
         self->_progressView.hidden = YES;
         if (self.imageProgressUpdateBlock) {
             self.imageProgressUpdateBlock(1);
@@ -230,7 +249,7 @@
 }
 
 - (void)recoverSubviews {
-    [_scrollView setZoomScale:1.0 animated:NO];
+    [_scrollView setZoomScale:_scrollView.minimumZoomScale animated:NO];
     [self resizeSubviews];
 }
 
@@ -285,7 +304,13 @@
         _scrollView.alwaysBounceVertical = YES;
         // 2.让scrollView新增滑动区域（裁剪框左上角的图片部分）
         if (contentHeightAdd > 0 || contentWidthAdd > 0) {
-            _scrollView.contentInset = UIEdgeInsetsMake(contentHeightAdd, _cropRect.origin.x, 0, 0);
+                        
+            if (_scrollView.minimumZoomScale < 1) {
+                _scrollView.contentInset = UIEdgeInsetsMake(contentHeightAdd, 0, 0, _cropRect.origin.x);
+            } else {
+                _scrollView.contentInset = UIEdgeInsetsMake(contentHeightAdd, _cropRect.origin.x, 0, 0);
+            }
+            
         } else {
             _scrollView.contentInset = UIEdgeInsetsZero;
         }
@@ -306,9 +331,9 @@
 #pragma mark - UITapGestureRecognizer Event
 
 - (void)doubleTap:(UITapGestureRecognizer *)tap {
-    if (_scrollView.zoomScale > 1.0) {
+    if (_scrollView.zoomScale > _scrollView.minimumZoomScale) {
         _scrollView.contentInset = UIEdgeInsetsZero;
-        [_scrollView setZoomScale:1.0 animated:YES];
+        [_scrollView setZoomScale:_scrollView.minimumZoomScale animated:YES];
     } else {
         CGPoint touchPoint = [tap locationInView:self.imageView];
         CGFloat newZoomScale = _scrollView.maximumZoomScale;
@@ -356,7 +381,7 @@
 @implementation TZVideoPreviewCell
 
 - (void)configSubviews {
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(pausePlayerAndShowNaviBar) name:UIApplicationWillResignActiveNotification object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(appWillResignActiveNotification) name:UIApplicationWillResignActiveNotification object:nil];
 }
 
 - (void)configPlayButton {
@@ -375,6 +400,11 @@
     [self configMoviePlayer];
 }
 
+- (void)setVideoURL:(NSURL *)videoURL {
+    _videoURL = videoURL;
+    [self configMoviePlayer];
+}
+
 - (void)configMoviePlayer {
     if (_player) {
         [_playerLayer removeFromSuperlayer];
@@ -383,20 +413,29 @@
         _player = nil;
     }
     
-    [[TZImageManager manager] getPhotoWithAsset:self.model.asset completion:^(UIImage *photo, NSDictionary *info, BOOL isDegraded) {
-        self->_cover = photo;
-    }];
-    [[TZImageManager manager] getVideoWithAsset:self.model.asset completion:^(AVPlayerItem *playerItem, NSDictionary *info) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            self->_player = [AVPlayer playerWithPlayerItem:playerItem];
-            self->_playerLayer = [AVPlayerLayer playerLayerWithPlayer:self->_player];
-            self->_playerLayer.backgroundColor = [UIColor blackColor].CGColor;
-            self->_playerLayer.frame = self.bounds;
-            [self.layer addSublayer:self->_playerLayer];
-            [self configPlayButton];
-            [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(pausePlayerAndShowNaviBar) name:AVPlayerItemDidPlayToEndTimeNotification object:self->_player.currentItem];
-        });
-    }];
+    if (self.model && self.model.asset) {
+        [[TZImageManager manager] getPhotoWithAsset:self.model.asset completion:^(UIImage *photo, NSDictionary *info, BOOL isDegraded) {
+            self.cover = photo;
+        }];
+        [[TZImageManager manager] getVideoWithAsset:self.model.asset completion:^(AVPlayerItem *playerItem, NSDictionary *info) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self configPlayerWithItem:playerItem];
+            });
+        }];
+    } else {
+        AVPlayerItem *playerItem = [AVPlayerItem playerItemWithURL:self.videoURL];
+        [self configPlayerWithItem:playerItem];
+    }
+}
+
+- (void)configPlayerWithItem:(AVPlayerItem *)playerItem {
+    self.player = [AVPlayer playerWithPlayerItem:playerItem];
+    self.playerLayer = [AVPlayerLayer playerLayerWithPlayer:self.player];
+    self.playerLayer.backgroundColor = [UIColor blackColor].CGColor;
+    self.playerLayer.frame = self.bounds;
+    [self.layer addSublayer:self.playerLayer];
+    [self configPlayButton];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(pausePlayerAndShowNaviBar) name:AVPlayerItemDidPlayToEndTimeNotification object:self.player.currentItem];
 }
 
 - (void)layoutSubviews {
@@ -406,7 +445,17 @@
 }
 
 - (void)photoPreviewCollectionViewDidScroll {
-    [self pausePlayerAndShowNaviBar];
+    if (_player && _player.rate != 0.0) {
+        [self pausePlayerAndShowNaviBar];
+    }
+}
+
+#pragma mark - Notification
+
+- (void)appWillResignActiveNotification {
+    if (_player && _player.rate != 0.0) {
+        [self pausePlayerAndShowNaviBar];
+    }
 }
 
 #pragma mark - Click Event
@@ -428,12 +477,10 @@
 }
 
 - (void)pausePlayerAndShowNaviBar {
-    if (_player.rate != 0.0) {
-        [_player pause];
-        [_playButton setImage:[UIImage tz_imageNamedFromMyBundle:@"MMVideoPreviewPlay"] forState:UIControlStateNormal];
-        if (self.singleTapGestureBlock) {
-            self.singleTapGestureBlock();
-        }
+    [_player pause];
+    [_playButton setImage:[UIImage tz_imageNamedFromMyBundle:@"MMVideoPreviewPlay"] forState:UIControlStateNormal];
+    if (self.singleTapGestureBlock) {
+        self.singleTapGestureBlock();
     }
 }
 
