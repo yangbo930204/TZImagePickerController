@@ -153,11 +153,8 @@
     CGFloat statusBarHeight = isFullScreen ? [TZCommonTools tz_statusBarHeight] : 0;
     CGFloat statusBarAndNaviBarHeight = statusBarHeight + self.navigationController.navigationBar.tz_height;
     _playerLayer.frame = self.view.bounds;
-//<<<<<<< HEAD
-//    CGFloat toolBarHeight = [TZCommonTools tz_isIPhoneX] ? 58 + (83 - 49) : 58;
-//=======
+
     CGFloat toolBarHeight = 44 + [TZCommonTools tz_safeAreaInsets].bottom;
-//>>>>>>> master
     _toolBar.frame = CGRectMake(0, self.view.tz_height - toolBarHeight, self.view.tz_width, toolBarHeight);
     _doneButton.frame = CGRectMake(self.view.tz_width - 97, 13, 82, 32);
     _playButton.frame = CGRectMake(0, statusBarAndNaviBarHeight, self.view.tz_width, self.view.tz_height - statusBarAndNaviBarHeight - toolBarHeight);

@@ -123,8 +123,7 @@ A：不要去拿PHImageFileURLKey，没用的，只有通过Photos框架才能�
 如果你上传照片需要一个名字参数，请参考Demo**直接用照片名字**。          
 
 ## 六. Release Notes 最近更新     
-
-3.5.5 修复iOS14下iCloud视频导出失败问题        
+3.5.6 修复iOS14下iCloud视频导出失败问题        
 **3.5.2 适配iPhone12系列设备**        
 3.4.4 支持Dark Mode      
 **3.4.2 适配iOS14，若干问题修复**                  

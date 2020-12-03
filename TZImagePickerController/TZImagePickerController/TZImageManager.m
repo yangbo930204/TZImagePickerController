@@ -390,7 +390,7 @@ static dispatch_once_t onceToken;
         CGFloat pixelHeight = pixelWidth / aspectRatio;
         imageSize = CGSizeMake(pixelWidth, pixelHeight);
     }
-
+    
     // 修复获取图片时出现的瞬间内存过高问题
     // 下面两行代码，来自hsjcom，他的github是：https://github.com/hsjcom 表示感谢
     PHImageRequestOptions *option = [[PHImageRequestOptions alloc] init];
@@ -721,7 +721,8 @@ static dispatch_once_t onceToken;
 - (void)requestVideoURLWithAsset:(PHAsset *)asset success:(void (^)(NSURL *videoURL))success failure:(void (^)(NSDictionary* info))failure {
     [[PHImageManager defaultManager] requestAVAssetForVideo:asset options:[self getVideoRequestOptions] resultHandler:^(AVAsset* avasset, AVAudioMix* audioMix, NSDictionary* info){
         // NSLog(@"AVAsset URL: %@",myAsset.URL);
-        if ([asset isKindOfClass:[AVURLAsset class]]) {
+
+        if ([avasset isKindOfClass:[AVURLAsset class]]) {
             NSURL *url = [(AVURLAsset *)avasset URL];
             if (success) {
                 success(url);

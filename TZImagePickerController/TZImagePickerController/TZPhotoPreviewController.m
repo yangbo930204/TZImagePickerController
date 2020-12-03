@@ -384,13 +384,8 @@
     if (_tzImagePickerVc.allowCrop) {
         [_collectionView reloadData];
     }
-//<<<<<<< HEAD
-//
-//    CGFloat toolBarHeight = [TZCommonTools tz_isIPhoneX] ? 58 + (83 - 49) : 58;
-//=======
-//
+
     CGFloat toolBarHeight = 44 + [TZCommonTools tz_safeAreaInsets].bottom;
-//>>>>>>> master
     CGFloat toolBarTop = self.view.tz_height - toolBarHeight;
     _toolBar.frame = CGRectMake(0, toolBarTop, self.view.tz_width, toolBarHeight);
     if (_tzImagePickerVc.allowPickingOriginalPhoto) {
@@ -579,7 +574,7 @@
         _currentIndex = currentIndex;
         [self customRefreshNaviBarAndBottomBarState];
     }
-
+    
     [[NSNotificationCenter defaultCenter] postNotificationName:@"photoPreviewCollectionViewDidScroll" object:nil];
 }
 
@@ -803,7 +798,7 @@
         }
         TZAssetModel *currentModel = self.models[self.currentIndex];
         if (_tzImagePickerVc.selectedModels.count <= 0) {
-//            self->_doneButton.enabled = !currentModel.iCloudFailed;
+            // self->_doneButton.enabled = !currentModel.iCloudFailed;
         } else {
             self->_doneButton.enabled = YES;
         }

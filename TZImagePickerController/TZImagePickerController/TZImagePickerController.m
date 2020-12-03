@@ -4,7 +4,7 @@
 //
 //  Created by 谭真 on 15/12/24.
 //  Copyright © 2015年 谭真. All rights reserved.
-//  version 3.5.5 - 2020.12.01
+//  version 3.5.6 - 2020.12.03
 //  更多信息，请前往项目的github地址：https://github.com/banchichen/TZImagePickerController
 
 #import "TZImagePickerController.h"
@@ -53,17 +53,12 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     self.needShowStatusBar = ![UIApplication sharedApplication].statusBarHidden;
-//<<<<<<< HEAD
-//    self.view.backgroundColor = [UIColor whiteColor];
-//    self.navigationBar.barStyle = UIBarStyleDefault;
-//=======
     if (@available(iOS 13.0, *)) {
         self.view.backgroundColor = UIColor.tertiarySystemBackgroundColor;
     } else {
         self.view.backgroundColor = [UIColor whiteColor];
     }
     self.navigationBar.barStyle = UIBarStyleDefault;
-//>>>>>>> master
     self.navigationBar.translucent = YES;
 
     [TZImageManager manager].shouldFixOrientation = NO;
@@ -740,19 +735,14 @@
     [super viewDidLoad];
     [[PHPhotoLibrary sharedPhotoLibrary] registerChangeObserver:self];
     self.isFirstAppear = YES;
-//<<<<<<< HEAD
-    self.view.backgroundColor = [UIColor whiteColor];
+
     #pragma mark - 需要打开
 //    self.fd_interactivePopDisabled = YES;
-
-//=======
     if (@available(iOS 13.0, *)) {
         self.view.backgroundColor = UIColor.tertiarySystemBackgroundColor;
     } else {
         self.view.backgroundColor = [UIColor whiteColor];
     }
-//
-//>>>>>>> master
     TZImagePickerController *imagePickerVc = (TZImagePickerController *)self.navigationController;
     UIBarButtonItem *cancelItem = [[UIBarButtonItem alloc] initWithTitle:imagePickerVc.cancelBtnTitleStr style:UIBarButtonItemStylePlain target:imagePickerVc action:@selector(cancelButtonClick)];
     [TZCommonTools configBarButtonItem:cancelItem tzImagePickerVc:imagePickerVc];

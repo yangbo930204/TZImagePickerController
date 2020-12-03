@@ -223,7 +223,6 @@
 
 - (void)reload:(NSNotification *)noti {
     TZImagePickerController *tzImagePickerVc = (TZImagePickerController *)noti.object;
-
     UIViewController *parentViewController = nil;
     UIResponder *responder = self.nextResponder;
     do {
@@ -237,7 +236,7 @@
     if (parentViewController.navigationController != tzImagePickerVc) {
         return;
     }
-
+    
     if (self.model.isSelected && tzImagePickerVc.showSelectedIndex) {
         self.index = [tzImagePickerVc.selectedAssetIds indexOfObject:self.model.asset.localIdentifier] + 1;
     }
@@ -369,8 +368,7 @@
         _selectImageView.contentMode = UIViewContentModeScaleAspectFit;
     }
     _indexLabel.frame = _selectImageView.frame;
-    _imageView.frame = CGRectMake(0, 0, self.tz_width, self.tz_height);
-
+    _imageView.frame = self.bounds;
     static CGFloat progressWH = 20;
     CGFloat progressXY = (self.tz_width - progressWH) / 2;
     _progressView.frame = CGRectMake(progressXY, progressXY, progressWH, progressWH);
@@ -412,7 +410,6 @@
     self = [super initWithStyle:style reuseIdentifier:reuseIdentifier];
     self.backgroundColor = [UIColor colorWithRed:30 / 255.0 green:27 / 255.0 blue:43 / 255.0 alpha:1];
     self.selectionStyle = UITableViewCellSelectionStyleNone;
-
     return self;
 }
 

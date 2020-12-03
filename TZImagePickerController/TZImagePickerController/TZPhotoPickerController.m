@@ -49,12 +49,8 @@
 @property (strong, nonatomic) CLLocation *location;
 @property (nonatomic, strong) NSOperationQueue *operationQueue;
 @property (nonatomic, assign) BOOL isSavingMedia;
-//<<<<<<< HEAD
 @property (nonatomic, strong) WGPhotoPickerTableView *photoPickerTableView;
-
-//=======
 @property (nonatomic, assign) BOOL isFetchingMedia;
-//>>>>>>> master
 @end
 
 static CGSize AssetGridThumbnailSize;
@@ -301,9 +297,7 @@ static CGFloat itemMargin = 7.5;
     if (!tzImagePickerVc.showSelectBtn) return;
 
     _bottomToolBar = [[UIView alloc] initWithFrame:CGRectZero];
-//<<<<<<< HEAD
 
-//=======
     if (@available(iOS 13.0, *)) {
         _bottomToolBar.backgroundColor = UIColor.tertiarySystemBackgroundColor;
     } else {
@@ -382,10 +376,7 @@ static CGFloat itemMargin = 7.5;
 
     _divideLine = [[UIView alloc] init];
     CGFloat rgb2 = 222 / 255.0;
-//<<<<<<< HEAD
-//    _divideLine.backgroundColor = [UIColor colorWithRed:rgb2 green:rgb2 blue:rgb2 alpha:1.0];
-//
-//=======
+
     if (@available(iOS 13.0, *)) {
         UIColor *divideLineDyColor = [UIColor colorWithDynamicProvider:^UIColor * _Nonnull(UITraitCollection * _Nonnull trainCollection) {
             if ([trainCollection userInterfaceStyle] == UIUserInterfaceStyleLight) {
@@ -400,7 +391,6 @@ static CGFloat itemMargin = 7.5;
         _divideLine.backgroundColor = [UIColor colorWithRed:rgb2 green:rgb2 blue:rgb2 alpha:1.0];
     }
     
-//>>>>>>> master
     [_bottomToolBar addSubview:_divideLine];
     [_bottomToolBar addSubview:_previewButton];
     [_bottomToolBar addSubview:_doneButton];
@@ -469,11 +459,9 @@ static CGFloat itemMargin = 7.5;
     CGFloat naviBarHeight = self.navigationController.navigationBar.tz_height;
     BOOL isStatusBarHidden = [UIApplication sharedApplication].isStatusBarHidden;
     BOOL isFullScreen = self.view.tz_height == [UIScreen mainScreen].bounds.size.height;
-//<<<<<<< HEAD
-//    CGFloat toolBarHeight = [TZCommonTools tz_isIPhoneX] ? 58 + (83 - 49) : 58;
-//=======
+
     CGFloat toolBarHeight = 50 + [TZCommonTools tz_safeAreaInsets].bottom;
-//>>>>>>> master
+
     if (self.navigationController.navigationBar.isTranslucent) {
         top = naviBarHeight;
         if (!isStatusBarHidden && isFullScreen) top += [TZCommonTools tz_statusBarHeight];
