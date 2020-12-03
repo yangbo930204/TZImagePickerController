@@ -11,7 +11,7 @@
 
 @implementation TZAssetModel
 
-+ (instancetype)modelWithAsset:(PHAsset *)asset type:(TZAssetModelMediaType)type{
++ (instancetype)modelWithAsset:(PHAsset *)asset type:(TZAssetModelMediaType)type {
     TZAssetModel *model = [[TZAssetModel alloc] init];
     model.asset = asset;
     model.isSelected = NO;
@@ -43,6 +43,12 @@
     }
 }
 
+- (void)refreshFetchResult {
+    PHFetchResult *fetchResult = [PHAsset fetchAssetsInAssetCollection:self.collection options:self.options];
+    self.count = fetchResult.count;
+    [self setResult:fetchResult];
+}
+
 - (void)setSelectedModels:(NSArray *)selectedModels {
     _selectedModels = selectedModels;
     if (_models) {
@@ -52,7 +58,7 @@
 
 - (void)checkSelectedModels {
     self.selectedCount = 0;
-    NSMutableArray *selectedAssets = [NSMutableArray array];
+    NSMutableSet *selectedAssets = [NSMutableSet setWithCapacity:_selectedModels.count];
     for (TZAssetModel *model in _selectedModels) {
         [selectedAssets addObject:model.asset];
     }

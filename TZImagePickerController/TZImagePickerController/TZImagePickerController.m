@@ -4,7 +4,7 @@
 //
 //  Created by 谭真 on 15/12/24.
 //  Copyright © 2015年 谭真. All rights reserved.
-//  version 3.2.5 - 2019.10.14
+//  version 3.5.5 - 2020.12.01
 //  更多信息，请前往项目的github地址：https://github.com/banchichen/TZImagePickerController
 
 #import "TZImagePickerController.h"
@@ -14,6 +14,8 @@
 #import "TZAssetCell.h"
 #import "UIView+Layout.h"
 #import "TZImageManager.h"
+#pragma mark - 需要打开
+//#import "UINavigationController+FDFullscreenPopGesture.h"
 
 @interface TZImagePickerController () {
     NSTimer *_timer;
@@ -22,17 +24,18 @@
     BOOL _pushPhotoPickerVc;
     BOOL _didPushPhotoPickerVc;
     CGRect _cropRect;
-    
+
     UIButton *_progressHUD;
     UIView *_HUDContainer;
     UIActivityIndicatorView *_HUDIndicatorView;
     UILabel *_HUDLabel;
-    
+
     UIStatusBarStyle _originStatusBarStyle;
 }
 /// Default is 4, Use in photos collectionView in TZPhotoPickerController
 /// 默认4列, TZPhotoPickerController中的照片collectionView
 @property (nonatomic, assign) NSInteger columnNumber;
+@property (nonatomic, assign) NSInteger HUDTimeoutCount; ///< 超时隐藏HUD计数
 @end
 
 @implementation TZImagePickerController
@@ -50,21 +53,34 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     self.needShowStatusBar = ![UIApplication sharedApplication].statusBarHidden;
-    self.view.backgroundColor = [UIColor whiteColor];
-    self.navigationBar.barStyle = UIBarStyleBlack;
+//<<<<<<< HEAD
+//    self.view.backgroundColor = [UIColor whiteColor];
+//    self.navigationBar.barStyle = UIBarStyleDefault;
+//=======
+    if (@available(iOS 13.0, *)) {
+        self.view.backgroundColor = UIColor.tertiarySystemBackgroundColor;
+    } else {
+        self.view.backgroundColor = [UIColor whiteColor];
+    }
+    self.navigationBar.barStyle = UIBarStyleDefault;
+//>>>>>>> master
     self.navigationBar.translucent = YES;
+
     [TZImageManager manager].shouldFixOrientation = NO;
 
     // 默认的外观，你可以在这个方法后重置
     self.oKButtonTitleColorNormal   = [UIColor colorWithRed:(255/255.0) green:(255/255.0) blue:(255/255.0) alpha:1.0];
     self.oKButtonTitleColorDisabled = [UIColor colorWithRed:(226/255.0) green:(226/255.0) blue:(226/255.0) alpha:0.5];
-    
+
     self.navigationBar.barTintColor = [UIColor colorWithRed:(34/255.0) green:(34/255.0)  blue:(34/255.0) alpha:1.0];
     self.navigationBar.tintColor = [UIColor whiteColor];
     self.automaticallyAdjustsScrollViewInsets = NO;
     if (self.needShowStatusBar) [UIApplication sharedApplication].statusBarHidden = NO;
-    
-    self.sendBtnType = 1;
+
+
+//    [self.navigationController.navigationBar setBackgroundImage:[[UIImage alloc] init] forBarPosition:UIBarPositionAny barMetrics:UIBarMetricsDefault];
+    [self.navigationController.navigationBar setShadowImage:[UIImage imageNamed:@"emoji_00"]];
+
 }
 
 - (void)setNaviBgColor:(UIColor *)naviBgColor {
@@ -105,7 +121,7 @@
 
 - (void)setIsStatusBarDefault:(BOOL)isStatusBarDefault {
     _isStatusBarDefault = isStatusBarDefault;
-    
+
     if (isStatusBarDefault) {
         self.statusBarStyle = UIStatusBarStyleDefault;
     } else {
@@ -176,7 +192,7 @@
         self.autoDismiss = YES;
         self.columnNumber = columnNumber;
         [self configDefaultSetting];
-        
+
         if (![[TZImageManager manager] authorizationStatusAuthorized]) {
             _tipLabel = [[UILabel alloc] init];
             _tipLabel.frame = CGRectMake(8, 120, self.view.tz_width - 16, 60);
@@ -184,7 +200,8 @@
             _tipLabel.numberOfLines = 0;
             _tipLabel.font = [UIFont systemFontOfSize:16];
             _tipLabel.textColor = [UIColor blackColor];
-            
+            _tipLabel.autoresizingMask = UIViewAutoresizingFlexibleWidth;
+
             NSDictionary *infoDict = [TZCommonTools tz_getInfoDictionary];
             NSString *appName = [infoDict valueForKey:@"CFBundleDisplayName"];
             if (!appName) appName = [infoDict valueForKey:@"CFBundleName"];
@@ -192,14 +209,16 @@
             NSString *tipText = [NSString stringWithFormat:[NSBundle tz_localizedStringForKey:@"Allow %@ to access your album in \"Settings -> Privacy -> Photos\""],appName];
             _tipLabel.text = tipText;
             [self.view addSubview:_tipLabel];
-            
+
             _settingBtn = [UIButton buttonWithType:UIButtonTypeSystem];
             [_settingBtn setTitle:self.settingBtnTitleStr forState:UIControlStateNormal];
             _settingBtn.frame = CGRectMake(0, 180, self.view.tz_width, 44);
             _settingBtn.titleLabel.font = [UIFont systemFontOfSize:18];
             [_settingBtn addTarget:self action:@selector(settingBtnClick) forControlEvents:UIControlEventTouchUpInside];
+            _settingBtn.autoresizingMask = UIViewAutoresizingFlexibleWidth;
+
             [self.view addSubview:_settingBtn];
-            
+
             if ([PHPhotoLibrary authorizationStatus] == 0) {
                 _timer = [NSTimer scheduledTimerWithTimeInterval:0.2 target:self selector:@selector(observeAuthrizationStatusChange) userInfo:nil repeats:NO];
             }
@@ -218,7 +237,7 @@
         self.selectedAssets = [NSMutableArray arrayWithArray:selectedAssets];
         self.allowPickingOriginalPhoto = self.allowPickingOriginalPhoto;
         [self configDefaultSetting];
-        
+
         previewVc.photos = [NSMutableArray arrayWithArray:selectedPhotos];
         previewVc.currentIndex = index;
         __weak typeof(self) weakSelf = self;
@@ -245,7 +264,7 @@
         self.allowCrop = YES;
         self.selectedAssets = [NSMutableArray arrayWithArray:@[asset]];
         [self configDefaultSetting];
-        
+
         previewVc.photos = [NSMutableArray arrayWithArray:@[photo]];
         previewVc.isCropImage = YES;
         previewVc.currentIndex = 0;
@@ -263,7 +282,8 @@
 }
 
 - (void)configDefaultSetting {
-    self.timeout = 15;
+    self.autoSelectCurrentWhenDone = YES;
+    self.timeout = 30;
     self.photoWidth = 828.0;
     self.photoPreviewMaxWidth = 600;
     self.naviTitleColor = [UIColor whiteColor];
@@ -277,10 +297,10 @@
     self.statusBarStyle = UIStatusBarStyleLightContent;
     self.cannotSelectLayerColor = [[UIColor whiteColor] colorWithAlphaComponent:0.8];
     self.allowCameraLocation = NO;
-    
+
     self.iconThemeColor = [UIColor colorWithRed:124 / 255.0 green:119 / 255.0 blue:226 / 255.0 alpha:1.0];
     [self configDefaultBtnTitle];
-    
+
     CGFloat cropViewWH = MIN(self.view.tz_width, self.view.tz_height) / 3 * 2;
     self.cropRect = CGRectMake((self.view.tz_width - cropViewWH) / 2, (self.view.tz_height - cropViewWH) / 2, cropViewWH, cropViewWH);
 }
@@ -330,6 +350,11 @@
     _photoOriginSelImage = [UIImage tz_imageNamedFromMyBundle:photoOriginSelImageName];
 }
 
+- (void)setTakePictureImage:(UIImage *)takePictureImage {
+    _takePictureImage = takePictureImage;
+    _takePictureImageName = @"";
+}
+
 - (void)setIconThemeColor:(UIColor *)iconThemeColor {
     _iconThemeColor = iconThemeColor;
     [self configDefaultImageName];
@@ -373,13 +398,13 @@
     if ([PHPhotoLibrary authorizationStatus] == 0) {
         _timer = [NSTimer scheduledTimerWithTimeInterval:0.2 target:self selector:@selector(observeAuthrizationStatusChange) userInfo:nil repeats:NO];
     }
-    
+
     if ([[TZImageManager manager] authorizationStatusAuthorized]) {
         [_tipLabel removeFromSuperview];
         [_settingBtn removeFromSuperview];
 
         [self pushPhotoPickerVc];
-        
+
         TZAlbumPickerController *albumPickerVc = (TZAlbumPickerController *)self.visibleViewController;
         if ([albumPickerVc isKindOfClass:[TZAlbumPickerController class]]) {
             [albumPickerVc configTableView];
@@ -396,7 +421,7 @@
         photoPickerVc.isFirstAppear = YES;
         photoPickerVc.showWarningView = self.showWarningView;
         photoPickerVc.columnNumber = self.columnNumber;
-        [[TZImageManager manager] getCameraRollAlbum:self.allowPickingVideo allowPickingImage:self.allowPickingImage needFetchAssets:NO completion:^(TZAlbumModel *model) {
+        [[TZImageManager manager] getCameraRollAlbumWithFetchAssets:NO completion:^(TZAlbumModel *model) {
             photoPickerVc.model = model;
             [self pushViewController:photoPickerVc animated:YES];
             self->_didPushPhotoPickerVc = YES;
@@ -411,30 +436,25 @@
     return alertController;
 }
 
-- (void)hideAlertView:(UIAlertController *)alertView {
-    [alertView dismissViewControllerAnimated:YES completion:nil];
-    alertView = nil;
-}
-
 - (void)showProgressHUD {
     if (!_progressHUD) {
         _progressHUD = [UIButton buttonWithType:UIButtonTypeCustom];
         [_progressHUD setBackgroundColor:[UIColor clearColor]];
-        
+
         _HUDContainer = [[UIView alloc] init];
         _HUDContainer.layer.cornerRadius = 8;
         _HUDContainer.clipsToBounds = YES;
         _HUDContainer.backgroundColor = [UIColor darkGrayColor];
         _HUDContainer.alpha = 0.7;
-        
+
         _HUDIndicatorView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhite];
-        
+
         _HUDLabel = [[UILabel alloc] init];
         _HUDLabel.textAlignment = NSTextAlignmentCenter;
         _HUDLabel.text = self.processHintStr;
         _HUDLabel.font = [UIFont systemFontOfSize:15];
         _HUDLabel.textColor = [UIColor whiteColor];
-        
+
         [_HUDContainer addSubview:_HUDLabel];
         [_HUDContainer addSubview:_HUDIndicatorView];
         [_progressHUD addSubview:_HUDContainer];
@@ -448,12 +468,17 @@
     }
     [applicationWindow addSubview:_progressHUD];
     [self.view setNeedsLayout];
-    
+
     // if over time, dismiss HUD automatic
+    self.HUDTimeoutCount++;
     __weak typeof(self) weakSelf = self;
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(self.timeout * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         __strong typeof(weakSelf) strongSelf = weakSelf;
-        [strongSelf hideProgressHUD];
+        strongSelf.HUDTimeoutCount--;
+        if (strongSelf.HUDTimeoutCount <= 0) {
+            strongSelf.HUDTimeoutCount = 0;
+            [strongSelf hideProgressHUD];
+        }
     });
 }
 
@@ -533,7 +558,7 @@
     } else if (columnNumber >= 6) {
         _columnNumber = 6;
     }
-    
+
     TZAlbumPickerController *albumPickerVc = [self.childViewControllers firstObject];
     albumPickerVc.columnNumber = _columnNumber;
     [TZImageManager manager].columnNumber = _columnNumber;
@@ -671,7 +696,7 @@
 
 - (void)viewDidLayoutSubviews {
     [super viewDidLayoutSubviews];
-    
+
     CGFloat progressHUDY = CGRectGetMaxY(self.navigationBar.frame);
     _progressHUD.frame = CGRectMake(0, progressHUDY, self.view.tz_width, self.view.tz_height - progressHUDY);
     _HUDContainer.frame = CGRectMake((self.view.tz_width - 120) / 2, (_progressHUD.tz_height - 90 - progressHUDY) / 2, 120, 90);
@@ -703,7 +728,7 @@
 @end
 
 
-@interface TZAlbumPickerController ()<UITableViewDataSource,UITableViewDelegate> {
+@interface TZAlbumPickerController ()<UITableViewDataSource, UITableViewDelegate, PHPhotoLibraryChangeObserver> {
     UITableView *_tableView;
 }
 @property (nonatomic, strong) NSMutableArray *albumArr;
@@ -713,9 +738,21 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    [[PHPhotoLibrary sharedPhotoLibrary] registerChangeObserver:self];
     self.isFirstAppear = YES;
+//<<<<<<< HEAD
     self.view.backgroundColor = [UIColor whiteColor];
-    
+    #pragma mark - 需要打开
+//    self.fd_interactivePopDisabled = YES;
+
+//=======
+    if (@available(iOS 13.0, *)) {
+        self.view.backgroundColor = UIColor.tertiarySystemBackgroundColor;
+    } else {
+        self.view.backgroundColor = [UIColor whiteColor];
+    }
+//
+//>>>>>>> master
     TZImagePickerController *imagePickerVc = (TZImagePickerController *)self.navigationController;
     UIBarButtonItem *cancelItem = [[UIBarButtonItem alloc] initWithTitle:imagePickerVc.cancelBtnTitleStr style:UIBarButtonItemStylePlain target:imagePickerVc action:@selector(cancelButtonClick)];
     [TZCommonTools configBarButtonItem:cancelItem tzImagePickerVc:imagePickerVc];
@@ -731,11 +768,11 @@
     } else if (imagePickerVc.allowPickingVideo) {
         self.navigationItem.title = [NSBundle tz_localizedStringForKey:@"Videos"];
     }
-    
+
     if (self.isFirstAppear && !imagePickerVc.navLeftBarButtonSettingBlock) {
         self.navigationItem.backBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:[NSBundle tz_localizedStringForKey:@"Back"] style:UIBarButtonItemStylePlain target:nil action:nil];
     }
-    
+
     [self configTableView];
 }
 
@@ -744,34 +781,41 @@
         return;
     }
 
+    TZImagePickerController *imagePickerVc = (TZImagePickerController *)self.navigationController;
     if (self.isFirstAppear) {
-        TZImagePickerController *imagePickerVc = (TZImagePickerController *)self.navigationController;
         [imagePickerVc showProgressHUD];
     }
 
-    TZImagePickerController *imagePickerVc = (TZImagePickerController *)self.navigationController;
     dispatch_async(dispatch_get_global_queue(0, 0), ^{
-        [[TZImageManager manager] getAllAlbums:imagePickerVc.allowPickingVideo allowPickingImage:imagePickerVc.allowPickingImage needFetchAssets:!self.isFirstAppear completion:^(NSArray<TZAlbumModel *> *models) {
+        [[TZImageManager manager] getAllAlbumsWithFetchAssets:!self.isFirstAppear completion:^(NSArray<TZAlbumModel *> *models) {
             dispatch_async(dispatch_get_main_queue(), ^{
                 self->_albumArr = [NSMutableArray arrayWithArray:models];
                 for (TZAlbumModel *albumModel in self->_albumArr) {
                     albumModel.selectedModels = imagePickerVc.selectedModels;
                 }
                 [imagePickerVc hideProgressHUD];
-                
+
                 if (self.isFirstAppear) {
                     self.isFirstAppear = NO;
                     [self configTableView];
                 }
-                
+
                 if (!self->_tableView) {
                     self->_tableView = [[UITableView alloc] initWithFrame:CGRectZero style:UITableViewStylePlain];
                     self->_tableView.rowHeight = 70;
+                    if (@available(iOS 13.0, *)) {
+                        self->_tableView.backgroundColor = [UIColor tertiarySystemBackgroundColor];
+                    } else {
+                        self->_tableView.backgroundColor = [UIColor whiteColor];
+                    }
                     self->_tableView.tableFooterView = [[UIView alloc] init];
                     self->_tableView.dataSource = self;
                     self->_tableView.delegate = self;
                     [self->_tableView registerClass:[TZAlbumCell class] forCellReuseIdentifier:@"TZAlbumCell"];
                     [self.view addSubview:self->_tableView];
+                    if (imagePickerVc.albumPickerPageUIConfigBlock) {
+                        imagePickerVc.albumPickerPageUIConfigBlock(self->_tableView);
+                    }
                 } else {
                     [self->_tableView reloadData];
                 }
@@ -781,6 +825,7 @@
 }
 
 - (void)dealloc {
+    [[PHPhotoLibrary sharedPhotoLibrary] unregisterChangeObserver:self];
     // NSLog(@"%@ dealloc",NSStringFromClass(self.class));
 }
 
@@ -792,11 +837,19 @@
     return [super preferredStatusBarStyle];
 }
 
+#pragma mark - PHPhotoLibraryChangeObserver
+
+- (void)photoLibraryDidChange:(PHChange *)changeInstance {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self configTableView];
+    });
+}
+
 #pragma mark - Layout
 
 - (void)viewDidLayoutSubviews {
     [super viewDidLayoutSubviews];
-    
+
     CGFloat top = 0;
     CGFloat tableViewHeight = 0;
     CGFloat naviBarHeight = self.navigationController.navigationBar.tz_height;
@@ -810,6 +863,10 @@
         tableViewHeight = self.view.tz_height;
     }
     _tableView.frame = CGRectMake(0, top, self.view.tz_width, tableViewHeight);
+    TZImagePickerController *imagePickerVc = (TZImagePickerController *)self.navigationController;
+    if (imagePickerVc.albumPickerPageDidLayoutSubviewsBlock) {
+        imagePickerVc.albumPickerPageDidLayoutSubviewsBlock(_tableView);
+    }
 }
 
 #pragma mark - UITableViewDataSource && Delegate
@@ -820,6 +877,9 @@
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     TZAlbumCell *cell = [tableView dequeueReusableCellWithIdentifier:@"TZAlbumCell"];
+    if (@available(iOS 13.0, *)) {
+        cell.backgroundColor = UIColor.tertiarySystemBackgroundColor;
+    }
     TZImagePickerController *imagePickerVc = (TZImagePickerController *)self.navigationController;
     cell.albumCellDidLayoutSubviewsBlock = imagePickerVc.albumCellDidLayoutSubviewsBlock;
     cell.albumCellDidSetModelBlock = imagePickerVc.albumCellDidSetModelBlock;
@@ -864,15 +924,40 @@
 
 @implementation TZCommonTools
 
++ (UIEdgeInsets)tz_safeAreaInsets {
+    UIWindow *window = [UIApplication sharedApplication].windows.firstObject;
+    if (![window isKeyWindow]) {
+        UIWindow *keyWindow = [UIApplication sharedApplication].keyWindow;
+        if (CGRectEqualToRect(keyWindow.bounds, [UIScreen mainScreen].bounds)) {
+            window = keyWindow;
+        }
+    }
+    if (@available(iOS 11.0, *)) {
+        UIEdgeInsets insets = [window safeAreaInsets];
+        return insets;
+    }
+    return UIEdgeInsetsZero;
+}
+
 + (BOOL)tz_isIPhoneX {
+    if ([UIWindow instancesRespondToSelector:@selector(safeAreaInsets)]) {
+        return [self tz_safeAreaInsets].bottom > 0;
+    }
     return (CGSizeEqualToSize([UIScreen mainScreen].bounds.size, CGSizeMake(375, 812)) ||
             CGSizeEqualToSize([UIScreen mainScreen].bounds.size, CGSizeMake(812, 375)) ||
             CGSizeEqualToSize([UIScreen mainScreen].bounds.size, CGSizeMake(414, 896)) ||
-            CGSizeEqualToSize([UIScreen mainScreen].bounds.size, CGSizeMake(896, 414)));
+            CGSizeEqualToSize([UIScreen mainScreen].bounds.size, CGSizeMake(896, 414)) ||
+            CGSizeEqualToSize([UIScreen mainScreen].bounds.size, CGSizeMake(390, 844)) ||
+            CGSizeEqualToSize([UIScreen mainScreen].bounds.size, CGSizeMake(844, 390)) ||
+            CGSizeEqualToSize([UIScreen mainScreen].bounds.size, CGSizeMake(428, 926)) ||
+            CGSizeEqualToSize([UIScreen mainScreen].bounds.size, CGSizeMake(926, 428)));
 }
 
 + (CGFloat)tz_statusBarHeight {
-    return [self tz_isIPhoneX] ? 44 : 20;
+    if ([UIWindow instancesRespondToSelector:@selector(safeAreaInsets)]) {
+        return [self tz_safeAreaInsets].top ?: 20;
+    }
+    return 20;
 }
 
 // 获得Info.plist数据字典
@@ -910,6 +995,14 @@
     [item setTitleTextAttributes:textAttrs forState:UIControlStateNormal];
 }
 
++ (BOOL)isICloudSyncError:(NSError *)error {
+    if (!error) return NO;
+    if ([error.domain isEqualToString:@"CKErrorDomain"] || [error.domain isEqualToString:@"CloudPhotoLibraryErrorDomain"]) {
+        return YES;
+    }
+    return NO;
+}
+
 @end
 
 
@@ -930,7 +1023,7 @@
 
 - (void)setPreferredLanguage:(NSString *)preferredLanguage {
     _preferredLanguage = preferredLanguage;
-    
+
     if (!preferredLanguage || !preferredLanguage.length) {
         preferredLanguage = [NSLocale preferredLanguages].firstObject;
     }

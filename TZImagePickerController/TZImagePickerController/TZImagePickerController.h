@@ -4,15 +4,15 @@
 //
 //  Created by 谭真 on 15/12/24.
 //  Copyright © 2015年 谭真. All rights reserved.
-//  version 3.2.5 - 2019.10.14
+//  version 3.5.5 - 2020.12.01
 //  更多信息，请前往项目的github地址：https://github.com/banchichen/TZImagePickerController
 
 /*
  经过测试，比起xib的方式，把TZAssetCell改用纯代码的方式来写，滑动帧数明显提高了（约提高10帧左右）
- 
+
  最初发现这个问题并修复的是@小鱼周凌宇同学，她的博客地址: http://zhoulingyu.com/
  表示感谢~
- 
+
  原来xib确实会导致性能问题啊...大家也要注意了...
  */
 
@@ -44,12 +44,13 @@
 /// Default is 9 / 默认最大可选9张图片
 @property (nonatomic, assign) NSInteger maxImagesCount;
 
-/// 1:上传，2:发送
-@property (nonatomic, assign) NSInteger sendBtnType;
-
 /// The minimum count photos user must pick, Default is 0
 /// 最小照片必选张数,默认是0
 @property (nonatomic, assign) NSInteger minImagesCount;
+
+/// If the user does not select any pictures, the current picture is automatically selected when the Finish button is clicked,  Default is YES
+/// 如果用户未选择任何图片，在点击完成按钮时自动选中当前图片，默认YES
+@property (nonatomic, assign) BOOL autoSelectCurrentWhenDone;
 
 /// Always enale the done button, not require minimum 1 photo be picked
 /// 让完成按钮一直可以点击，无须最少选择一张图片
@@ -66,8 +67,8 @@
 /// Default is 600px / 默认600像素宽
 @property (nonatomic, assign) CGFloat photoPreviewMaxWidth;
 
-/// Default is 15, While fetching photo, HUD will dismiss automatic if timeout;
-/// 超时时间，默认为15秒，当取图片时间超过15秒还没有取成功时，会自动dismiss HUD；
+/// Default is 30, While fetching photo, HUD will dismiss automatic if timeout;
+/// 超时时间，默认为30秒，当取图片时间超过30秒还没有取成功时，会自动dismiss HUD；
 @property (nonatomic, assign) NSInteger timeout;
 
 /// Default is YES, if set NO, the original photo button will hide. user can't picking original photo.
@@ -169,12 +170,13 @@
 /// 单选模式,maxImagesCount为1时才生效
 @property (nonatomic, assign) BOOL showSelectBtn;        ///< 在单选模式下，照片列表页中，显示选择按钮,默认为NO
 @property (nonatomic, assign) BOOL allowCrop;            ///< 允许裁剪,默认为YES，showSelectBtn为NO才生效
-@property (nonatomic, assign) BOOL scaleAspectFillCrop;  ///< 是否图片等比缩放填充cropRect区域
+@property (nonatomic, assign) BOOL scaleAspectFillCrop;  ///< 是否图片等比缩放填充cropRect区域，开启后预览页面无法左右滑动切换图片
 @property (nonatomic, assign) CGRect cropRect;           ///< 裁剪框的尺寸
 @property (nonatomic, assign) CGRect cropRectPortrait;   ///< 裁剪框的尺寸(竖屏)
 @property (nonatomic, assign) CGRect cropRectLandscape;  ///< 裁剪框的尺寸(横屏)
 @property (nonatomic, assign) BOOL needCircleCrop;       ///< 需要圆形裁剪框
 @property (nonatomic, assign) BOOL needExpression;       ///< 需要添加表情
+@property (nonatomic, assign) BOOL isChangeHallCover;    ///< 修改厅封面
 @property (nonatomic, assign) NSInteger circleCropRadius;  ///< 圆形裁剪框半径大小
 @property (nonatomic, copy) void (^cropViewSettingBlock)(UIView *cropView);     ///< 自定义裁剪框的其他属性
 @property (nonatomic, copy) void (^navLeftBarButtonSettingBlock)(UIButton *leftButton);     ///< 自定义返回按钮样式及其属性
@@ -184,6 +186,7 @@
 @property (nonatomic, copy) void (^photoPreviewPageUIConfigBlock)(UICollectionView *collectionView, UIView *naviBar, UIButton *backButton, UIButton *selectButton, UILabel *indexLabel, UIView *toolBar, UIButton *originalPhotoButton, UILabel *originalPhotoLabel, UIButton *doneButton, UIImageView *numberImageView, UILabel *numberLabel);
 @property (nonatomic, copy) void (^videoPreviewPageUIConfigBlock)(UIButton *playButton, UIView *toolBar, UIButton *doneButton);
 @property (nonatomic, copy) void (^gifPreviewPageUIConfigBlock)(UIView *toolBar, UIButton *doneButton);
+@property (nonatomic, copy) void (^albumPickerPageUIConfigBlock)(UITableView *tableView);
 @property (nonatomic, copy) void (^assetCellDidSetModelBlock)(TZAssetCell *cell, UIImageView *imageView, UIImageView *selectImageView, UILabel *indexLabel, UIView *bottomView, UILabel *timeLength, UIImageView *videoImgView);
 @property (nonatomic, copy) void (^albumCellDidSetModelBlock)(TZAlbumCell *cell, UIImageView *posterImageView, UILabel *titleLabel);
 /// 【自定义各页面/组件的frame】在界面viewDidLayoutSubviews/组件layoutSubviews后调用，允许外界修改frame等
@@ -191,6 +194,7 @@
 @property (nonatomic, copy) void (^photoPreviewPageDidLayoutSubviewsBlock)(UICollectionView *collectionView, UIView *naviBar, UIButton *backButton, UIButton *selectButton, UILabel *indexLabel, UIView *toolBar, UIButton *originalPhotoButton, UILabel *originalPhotoLabel, UIButton *doneButton, UIImageView *numberImageView, UILabel *numberLabel);
 @property (nonatomic, copy) void (^videoPreviewPageDidLayoutSubviewsBlock)(UIButton *playButton, UIView *toolBar, UIButton *doneButton);
 @property (nonatomic, copy) void (^gifPreviewPageDidLayoutSubviewsBlock)(UIView *toolBar, UIButton *doneButton);
+@property (nonatomic, copy) void (^albumPickerPageDidLayoutSubviewsBlock)(UITableView *tableView);
 @property (nonatomic, copy) void (^assetCellDidLayoutSubviewsBlock)(TZAssetCell *cell, UIImageView *imageView, UIImageView *selectImageView, UILabel *indexLabel, UIView *bottomView, UILabel *timeLength, UIImageView *videoImgView);
 @property (nonatomic, copy) void (^albumCellDidLayoutSubviewsBlock)(TZAlbumCell *cell, UIImageView *posterImageView, UILabel *titleLabel);
 /// 自定义各页面/组件的frame】刷新底部状态(refreshNaviBarAndBottomBarState)使用的
@@ -200,7 +204,6 @@
 
 #pragma mark -
 - (UIAlertController *)showAlertWithTitle:(NSString *)title;
-- (void)hideAlertView:(UIAlertController *)alertView;
 - (void)showProgressHUD;
 - (void)hideProgressHUD;
 @property (nonatomic, assign) BOOL isSelectOriginalPhoto;
@@ -311,12 +314,14 @@
 
 
 @interface TZCommonTools : NSObject
++ (UIEdgeInsets)tz_safeAreaInsets;
 + (BOOL)tz_isIPhoneX;
 + (CGFloat)tz_statusBarHeight;
 // 获得Info.plist数据字典
 + (NSDictionary *)tz_getInfoDictionary;
 + (BOOL)tz_isRightToLeftLayout;
 + (void)configBarButtonItem:(UIBarButtonItem *)item tzImagePickerVc:(TZImagePickerController *)tzImagePickerVc;
++ (BOOL)isICloudSyncError:(NSError *)error;
 @end
 
 

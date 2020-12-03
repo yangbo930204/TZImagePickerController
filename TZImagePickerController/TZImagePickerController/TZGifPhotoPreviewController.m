@@ -12,6 +12,7 @@
 #import "UIView+Layout.h"
 #import "TZPhotoPreviewCell.h"
 #import "TZImageManager.h"
+#pragma mark - 需要打开
 //#import "UINavigationController+FDFullscreenPopGesture.h"
 
 #pragma clang diagnostic push
@@ -22,25 +23,27 @@
     UIView *_toolBar;
     UIButton *_doneButton;
     UIProgressView *_progress;
-    
+
     TZPhotoPreviewView *_previewView;
-    
+
     UIStatusBarStyle _originStatusBarStyle;
 }
+@property (assign, nonatomic) BOOL needShowStatusBar;
 @end
 
 @implementation TZGifPhotoPreviewController
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    self.needShowStatusBar = ![UIApplication sharedApplication].statusBarHidden;
     self.view.backgroundColor = [UIColor blackColor];
     TZImagePickerController *tzImagePickerVc = (TZImagePickerController *)self.navigationController;
     if (tzImagePickerVc) {
         self.navigationItem.title = [NSString stringWithFormat:@"GIF %@",tzImagePickerVc.previewBtnTitleStr];
     }
-    
+    #pragma mark - 需要打开
 //    self.fd_prefersNavigationBarHidden = YES;
-    
+
     [self configPreviewView];
     [self configNavBar];
     [self configBottomToolBar];
@@ -54,6 +57,9 @@
 
 - (void)viewWillDisappear:(BOOL)animated {
     [super viewWillDisappear:animated];
+    if (self.needShowStatusBar) {
+        [UIApplication sharedApplication].statusBarHidden = NO;
+    }
     [UIApplication sharedApplication].statusBarStyle = _originStatusBarStyle;
 }
 
@@ -62,12 +68,12 @@
     TZImagePickerController *tzImagePickerVc = (TZImagePickerController *)self.navigationController;
 
     if (tzImagePickerVc.needExpression) {
-        
+
         _naviBar = [[UIView alloc] initWithFrame:CGRectZero];
         _naviBar.backgroundColor = [UIColor colorWithRed:(17/255.0) green:(15/255.0) blue:(28/255.0) alpha:1.0];
 
         [self.view addSubview:_naviBar];
-        
+
         CGFloat statusBarHeight = [TZCommonTools tz_statusBarHeight];
 
         UIButton * backButton = [[UIButton alloc] initWithFrame:CGRectMake(0, statusBarHeight, 40, 44)];
@@ -82,14 +88,14 @@
         titleLabel.textColor = [UIColor whiteColor];
         titleLabel.textAlignment = NSTextAlignmentCenter;
         [_naviBar addSubview:titleLabel];
-        
+
         UIButton * cancelBtn = [[UIButton alloc] initWithFrame:CGRectMake(self.view.tz_width - 50, statusBarHeight, 50, 44)];
         [cancelBtn setTitle:@"取消" forState:UIControlStateNormal];
         cancelBtn.titleLabel.font = [UIFont systemFontOfSize:14];
         [cancelBtn addTarget:self action:@selector(cancelBtnClick) forControlEvents:UIControlEventTouchUpInside];
-        
+
         [_naviBar addSubview:cancelBtn];
-        
+
         UIView * lineView = [[UIView alloc] initWithFrame:CGRectMake(0, statusBarHeight + 44 - 0.5, self.view.tz_width, 0.5)];
         lineView.backgroundColor = [UIColor blackColor];
         [_naviBar addSubview:lineView];
@@ -120,9 +126,9 @@
     _toolBar = [[UIView alloc] initWithFrame:CGRectZero];
     CGFloat rgb = 34 / 255.0;
     _toolBar.backgroundColor = [UIColor colorWithRed:rgb green:rgb blue:rgb alpha:0.7];
-    
+
     _doneButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    _doneButton.titleLabel.font = [UIFont systemFontOfSize:16];
+    _doneButton.titleLabel.font = [UIFont systemFontOfSize:13];
     [_doneButton addTarget:self action:@selector(doneButtonClick) forControlEvents:UIControlEventTouchUpInside];
     TZImagePickerController *tzImagePickerVc = (TZImagePickerController *)self.navigationController;
     if (tzImagePickerVc) {
@@ -133,7 +139,7 @@
         [_doneButton setTitleColor:[UIColor colorWithRed:(83/255.0) green:(179/255.0) blue:(17/255.0) alpha:1.0] forState:UIControlStateNormal];
     }
     [_toolBar addSubview:_doneButton];
-    
+
     if (!tzImagePickerVc.needExpression) {
         UILabel *byteLabel = [[UILabel alloc] init];
         byteLabel.textColor = [UIColor whiteColor];
@@ -144,30 +150,30 @@
         }];
         [_toolBar addSubview:byteLabel];
     }
-    
+
     [self.view addSubview:_toolBar];
-    
+
     if (tzImagePickerVc.gifPreviewPageUIConfigBlock) {
         tzImagePickerVc.gifPreviewPageUIConfigBlock(_toolBar, _doneButton);
     }
-    
+
     [self customConfigBottomToolBar];
 }
 
 - (void)customConfigBottomToolBar
 {
+    _toolBar.backgroundColor = [UIColor colorWithRed:30/255.0 green:27/255.0 blue:43/255.0 alpha:0.9];
+
     TZImagePickerController * _tzImagePickerVc = (TZImagePickerController *)self.navigationController;
 
     if (_tzImagePickerVc.needExpression) {
-        
-        _toolBar.backgroundColor = [UIColor clearColor];
-        
-        _doneButton.frame = CGRectMake(self.view.tz_width - 97, 8, 82, 32);
+
+        _doneButton.frame = CGRectMake(self.view.tz_width - 97, 13, 82, 32);
         _doneButton.titleLabel.font = [UIFont systemFontOfSize:14];
-        _doneButton.layer.cornerRadius = 2.5;
+        _doneButton.layer.cornerRadius = 16;
         _doneButton.layer.masksToBounds = YES;
         _doneButton.backgroundColor = [UIColor colorWithRed:124/255.0 green:119/255.0 blue:226/255.0 alpha:1];
-        
+
         [_doneButton setTitle:@"确定" forState:UIControlStateNormal];
     }
 }
@@ -187,19 +193,19 @@
     TZImagePickerController *tzImagePickerVc = (TZImagePickerController *)self.navigationController;
 
     CGFloat statusBarHeight = [TZCommonTools tz_statusBarHeight];
-    
+
     CGFloat naviBarHeight = statusBarHeight + tzImagePickerVc.navigationBar.tz_height;
     _naviBar.frame = CGRectMake(0, 0, self.view.tz_width, naviBarHeight);
-    
+
     _previewView.frame = self.view.bounds;
     _previewView.scrollView.frame = self.view.bounds;
-    CGFloat toolBarHeight = [TZCommonTools tz_isIPhoneX] ? 44 + (83 - 49) : 44;
+//<<<<<<< HEAD
+//    CGFloat toolBarHeight = [TZCommonTools tz_isIPhoneX] ? 58 + (83 - 49) : 58;
+//=======
+    CGFloat toolBarHeight = 44 + [TZCommonTools tz_safeAreaInsets].bottom;
+//>>>>>>> master
     _toolBar.frame = CGRectMake(0, self.view.tz_height - toolBarHeight, self.view.tz_width, toolBarHeight);
-    
-    if (!tzImagePickerVc.needExpression) {
-        _doneButton.frame = CGRectMake(self.view.tz_width - 44 - 12, 0, 44, 44);
-    }
-    
+
     if (tzImagePickerVc.gifPreviewPageDidLayoutSubviewsBlock) {
         tzImagePickerVc.gifPreviewPageDidLayoutSubviewsBlock(_toolBar, _doneButton);
     }

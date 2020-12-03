@@ -28,13 +28,13 @@
 }
 
 - (void)configSubviews {
-    
+
 }
 
 #pragma mark - Notification
 
 - (void)photoPreviewCollectionViewDidScroll {
-    
+
 }
 
 - (void)dealloc {
@@ -61,12 +61,12 @@
             strongSelf.imageProgressUpdateBlock(progress);
         }
     }];
-    [self addSubview:self.previewView];
+    [self.contentView addSubview:self.previewView];
 }
 
 - (void)setModel:(TZAssetModel *)model {
     [super setModel:model];
-    _previewView.asset = model.asset;
+    _previewView.model = model;
 }
 
 - (void)recoverSubviews {
@@ -123,17 +123,28 @@
             _scrollView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentNever;
         }
         [self addSubview:_scrollView];
-        
+
         _imageContainerView = [[UIView alloc] init];
         _imageContainerView.clipsToBounds = YES;
         _imageContainerView.contentMode = UIViewContentModeScaleAspectFill;
         [_scrollView addSubview:_imageContainerView];
-        
+
         _imageView = [[UIImageView alloc] init];
         _imageView.backgroundColor = [UIColor colorWithWhite:1.000 alpha:0.500];
         _imageView.contentMode = UIViewContentModeScaleAspectFill;
         _imageView.clipsToBounds = YES;
         [_imageContainerView addSubview:_imageView];
+
+        _iCloudErrorIcon = [[UIImageView alloc] init];
+        _iCloudErrorIcon.image = [UIImage tz_imageNamedFromMyBundle:@"iCloudError"];
+        _iCloudErrorIcon.hidden = YES;
+        [self addSubview:_iCloudErrorIcon];
+        _iCloudErrorLabel = [[UILabel alloc] init];
+        _iCloudErrorLabel.font = [UIFont systemFontOfSize:10];
+        _iCloudErrorLabel.textColor = [UIColor whiteColor];
+        _iCloudErrorLabel.text = [NSBundle tz_localizedStringForKey:@"iCloud sync failed"];
+        _iCloudErrorLabel.hidden = YES;
+        [self addSubview:_iCloudErrorLabel];
         
         UITapGestureRecognizer *tap1 = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(singleTap:)];
         [self addGestureRecognizer:tap1];
@@ -141,7 +152,7 @@
         tap2.numberOfTapsRequired = 2;
         [tap1 requireGestureRecognizerToFail:tap2];
         [self addGestureRecognizer:tap2];
-        
+
         [self configProgressView];
     }
     return self;
@@ -160,7 +171,9 @@
     if (model.type == TZAssetModelMediaTypePhotoGif) {
         // 先显示缩略图
         [[TZImageManager manager] getPhotoWithAsset:model.asset completion:^(UIImage *photo, NSDictionary *info, BOOL isDegraded) {
-            self.imageView.image = photo;
+            if (photo) {
+                self.imageView.image = photo;
+            }
             [self resizeSubviews];
             if (self.isRequestingGIF) {
                 return;
@@ -170,6 +183,13 @@
             [[TZImageManager manager] getOriginalPhotoDataWithAsset:model.asset progressHandler:^(double progress, NSError *error, BOOL *stop, NSDictionary *info) {
                 progress = progress > 0.02 ? progress : 0.02;
                 dispatch_async(dispatch_get_main_queue(), ^{
+                    BOOL iCloudSyncFailed = [TZCommonTools isICloudSyncError:error];
+                    self.iCloudErrorLabel.hidden = !iCloudSyncFailed;
+                    self.iCloudErrorIcon.hidden = !iCloudSyncFailed;
+                    if (self.iCloudSyncFailedHandle) {
+                        self.iCloudSyncFailedHandle(model.asset, iCloudSyncFailed);
+                    }
+                    
                     self.progressView.progress = progress;
                     if (progress >= 1) {
                         self.progressView.hidden = YES;
@@ -202,11 +222,19 @@
     if (_asset && self.imageRequestID) {
         [[PHImageManager defaultManager] cancelImageRequest:self.imageRequestID];
     }
-    
+
     _asset = asset;
     self.imageRequestID = [[TZImageManager manager] getPhotoWithAsset:asset completion:^(UIImage *photo, NSDictionary *info, BOOL isDegraded) {
+        BOOL iCloudSyncFailed = !photo && [TZCommonTools isICloudSyncError:info[PHImageErrorKey]];
+        self.iCloudErrorLabel.hidden = !iCloudSyncFailed;
+        self.iCloudErrorIcon.hidden = !iCloudSyncFailed;
+        if (self.iCloudSyncFailedHandle) {
+            self.iCloudSyncFailedHandle(asset, iCloudSyncFailed);
+        }
         if (![asset isEqual:self->_asset]) return;
-        self.imageView.image = photo;
+        if (photo) {
+            self.imageView.image = photo;
+        }
         [self resizeSubviews];
         if (self.imageView.tz_height && self.allowCrop) {
             CGFloat scale = MAX(self.cropRect.size.width / self.imageView.tz_width, self.cropRect.size.height / self.imageView.tz_height);
@@ -221,7 +249,7 @@
                 }
             }
         }
-
+        
         self->_progressView.hidden = YES;
         if (self.imageProgressUpdateBlock) {
             self.imageProgressUpdateBlock(1);
@@ -238,13 +266,13 @@
         if (self.imageProgressUpdateBlock && progress < 1) {
             self.imageProgressUpdateBlock(progress);
         }
-        
+
         if (progress >= 1) {
             self->_progressView.hidden = YES;
             self.imageRequestID = 0;
         }
     } networkAccessAllowed:YES];
-    
+
     [self configMaximumZoomScale];
 }
 
@@ -256,7 +284,7 @@
 - (void)resizeSubviews {
     _imageContainerView.tz_origin = CGPointZero;
     _imageContainerView.tz_width = self.scrollView.tz_width;
-    
+
     UIImage *image = _imageView.image;
     if (image.size.height / image.size.width > self.tz_height / self.scrollView.tz_width) {
         _imageContainerView.tz_height = floor(image.size.height / (image.size.width / self.scrollView.tz_width));
@@ -275,13 +303,13 @@
     [_scrollView scrollRectToVisible:self.bounds animated:NO];
     _scrollView.alwaysBounceVertical = _imageContainerView.tz_height <= self.tz_height ? NO : YES;
     _imageView.frame = _imageContainerView.bounds;
-    
+
     [self refreshScrollViewContentSize];
 }
 
 - (void)configMaximumZoomScale {
     _scrollView.maximumZoomScale = _allowCrop ? 4.0 : 2.5;
-    
+
     if ([self.asset isKindOfClass:[PHAsset class]]) {
         PHAsset *phAsset = (PHAsset *)self.asset;
         CGFloat aspectRatio = phAsset.pixelWidth / (CGFloat)phAsset.pixelHeight;
@@ -304,13 +332,13 @@
         _scrollView.alwaysBounceVertical = YES;
         // 2.让scrollView新增滑动区域（裁剪框左上角的图片部分）
         if (contentHeightAdd > 0 || contentWidthAdd > 0) {
-                        
+
             if (_scrollView.minimumZoomScale < 1) {
                 _scrollView.contentInset = UIEdgeInsetsMake(contentHeightAdd, 0, 0, _cropRect.origin.x);
             } else {
                 _scrollView.contentInset = UIEdgeInsetsMake(contentHeightAdd, _cropRect.origin.x, 0, 0);
             }
-            
+
         } else {
             _scrollView.contentInset = UIEdgeInsetsZero;
         }
@@ -324,8 +352,10 @@
     CGFloat progressX = (self.tz_width - progressWH) / 2;
     CGFloat progressY = (self.tz_height - progressWH) / 2;
     _progressView.frame = CGRectMake(progressX, progressY, progressWH, progressWH);
-    
+
     [self recoverSubviews];
+    _iCloudErrorIcon.frame = CGRectMake(20, [TZCommonTools tz_statusBarHeight] + 44 + 10, 28, 28);
+    _iCloudErrorLabel.frame = CGRectMake(53, [TZCommonTools tz_statusBarHeight] + 44 + 10, self.tz_width - 63, 28);
 }
 
 #pragma mark - UITapGestureRecognizer Event
@@ -382,6 +412,14 @@
 
 - (void)configSubviews {
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(appWillResignActiveNotification) name:UIApplicationWillResignActiveNotification object:nil];
+    _iCloudErrorIcon = [[UIImageView alloc] init];
+    _iCloudErrorIcon.image = [UIImage tz_imageNamedFromMyBundle:@"iCloudError"];
+    _iCloudErrorIcon.hidden = YES;
+    _iCloudErrorLabel = [[UILabel alloc] init];
+    _iCloudErrorLabel.font = [UIFont systemFontOfSize:10];
+    _iCloudErrorLabel.textColor = [UIColor whiteColor];
+    _iCloudErrorLabel.text = [NSBundle tz_localizedStringForKey:@"iCloud sync failed"];
+    _iCloudErrorLabel.hidden = YES;
 }
 
 - (void)configPlayButton {
@@ -392,7 +430,10 @@
     [_playButton setImage:[UIImage tz_imageNamedFromMyBundle:@"MMVideoPreviewPlay"] forState:UIControlStateNormal];
     [_playButton setImage:[UIImage tz_imageNamedFromMyBundle:@"MMVideoPreviewPlayHL"] forState:UIControlStateHighlighted];
     [_playButton addTarget:self action:@selector(playButtonClick) forControlEvents:UIControlEventTouchUpInside];
-    [self addSubview:_playButton];
+    _playButton.frame = CGRectMake(0, 64, self.tz_width, self.tz_height - 64 - 44);
+    [self.contentView addSubview:_playButton];
+    [self.contentView addSubview:_iCloudErrorIcon];
+    [self.contentView addSubview:_iCloudErrorLabel];
 }
 
 - (void)setModel:(TZAssetModel *)model {
@@ -412,13 +453,27 @@
         [_player pause];
         _player = nil;
     }
-    
+
     if (self.model && self.model.asset) {
         [[TZImageManager manager] getPhotoWithAsset:self.model.asset completion:^(UIImage *photo, NSDictionary *info, BOOL isDegraded) {
-            self.cover = photo;
+            BOOL iCloudSyncFailed = !photo && [TZCommonTools isICloudSyncError:info[PHImageErrorKey]];
+            self.iCloudErrorLabel.hidden = !iCloudSyncFailed;
+            self.iCloudErrorIcon.hidden = !iCloudSyncFailed;
+            if (self.iCloudSyncFailedHandle) {
+                self.iCloudSyncFailedHandle(self.model.asset, iCloudSyncFailed);
+            }
+            if (photo) {
+                self.cover = photo;
+            }
         }];
         [[TZImageManager manager] getVideoWithAsset:self.model.asset completion:^(AVPlayerItem *playerItem, NSDictionary *info) {
             dispatch_async(dispatch_get_main_queue(), ^{
+                BOOL iCloudSyncFailed = !playerItem && [TZCommonTools isICloudSyncError:info[PHImageErrorKey]];
+                self.iCloudErrorLabel.hidden = !iCloudSyncFailed;
+                self.iCloudErrorIcon.hidden = !iCloudSyncFailed;
+                if (self.iCloudSyncFailedHandle) {
+                    self.iCloudSyncFailedHandle(self.model.asset, iCloudSyncFailed);
+                }
                 [self configPlayerWithItem:playerItem];
             });
         }];
@@ -433,7 +488,7 @@
     self.playerLayer = [AVPlayerLayer playerLayerWithPlayer:self.player];
     self.playerLayer.backgroundColor = [UIColor blackColor].CGColor;
     self.playerLayer.frame = self.bounds;
-    [self.layer addSublayer:self.playerLayer];
+    [self.contentView.layer addSublayer:self.playerLayer];
     [self configPlayButton];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(pausePlayerAndShowNaviBar) name:AVPlayerItemDidPlayToEndTimeNotification object:self.player.currentItem];
 }
@@ -442,6 +497,8 @@
     [super layoutSubviews];
     _playerLayer.frame = self.bounds;
     _playButton.frame = CGRectMake(0, 64, self.tz_width, self.tz_height - 64 - 44);
+    _iCloudErrorIcon.frame = CGRectMake(20, [TZCommonTools tz_statusBarHeight] + 44 + 10, 28, 28);
+    _iCloudErrorLabel.frame = CGRectMake(53, [TZCommonTools tz_statusBarHeight] + 44 + 10, self.tz_width - 63, 28);
 }
 
 - (void)photoPreviewCollectionViewDidScroll {
@@ -464,6 +521,7 @@
     CMTime currentTime = _player.currentItem.currentTime;
     CMTime durationTime = _player.currentItem.duration;
     if (_player.rate == 0.0f) {
+        [[NSNotificationCenter defaultCenter] postNotificationName:@"TZ_VIDEO_PLAY_NOTIFICATION" object:_player];
         if (currentTime.value == durationTime.value) [_player.currentItem seekToTime:CMTimeMake(0, 1)];
         [_player play];
         [_playButton setImage:nil forState:UIControlStateNormal];
@@ -500,7 +558,7 @@
         __strong typeof(weakSelf) strongSelf = weakSelf;
         [strongSelf signleTapAction];
     }];
-    [self addSubview:_previewView];
+    [self.contentView addSubview:_previewView];
 }
 
 - (void)setModel:(TZAssetModel *)model {
@@ -515,7 +573,7 @@
 
 #pragma mark - Click Event
 
-- (void)signleTapAction {    
+- (void)signleTapAction {
     if (self.singleTapGestureBlock) {
         self.singleTapGestureBlock();
     }

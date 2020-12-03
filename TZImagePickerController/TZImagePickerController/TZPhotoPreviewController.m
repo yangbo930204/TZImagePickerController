@@ -13,14 +13,16 @@
 #import "TZImagePickerController.h"
 #import "TZImageManager.h"
 #import "TZImageCropManager.h"
+#pragma mark - 需要打开
 //#import "UINavigationController+FDFullscreenPopGesture.h"
+#import "WGImagePickerWarningView.h"
 
 @interface TZPhotoPreviewController ()<UICollectionViewDataSource,UICollectionViewDelegate,UIScrollViewDelegate> {
     UICollectionView *_collectionView;
     UICollectionViewFlowLayout *_layout;
     NSArray *_photosTemp;
     NSArray *_assetsTemp;
-    
+
     UIView *_naviBar;
     UIButton *_backButton;
     UIButton *_selectButton;
@@ -33,9 +35,9 @@
     UILabel *_numberLabel;
     UIButton *_originalPhotoButton;
     UILabel *_originalPhotoLabel;
-    
+
     CGFloat _offsetItemCount;
-    
+
     BOOL _didSetIsSelectOriginalPhoto;
 }
 @property (nonatomic, assign) BOOL isHideNaviBar;
@@ -44,12 +46,14 @@
 
 @property (nonatomic, assign) double progress;
 @property (strong, nonatomic) UIAlertController *alertView;
+@property (nonatomic, strong) UIView *iCloudErrorView;
 @end
 
 @implementation TZPhotoPreviewController
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    #pragma mark - 需要打开
 //    self.fd_prefersNavigationBarHidden = YES;
     [TZImageManager manager].shouldFixOrientation = YES;
     TZImagePickerController *_tzImagePickerVc = (TZImagePickerController *)self.navigationController;
@@ -106,15 +110,15 @@
 
 - (void)configCustomNaviBar {
     TZImagePickerController *tzImagePickerVc = (TZImagePickerController *)self.navigationController;
-    
+
     _naviBar = [[UIView alloc] initWithFrame:CGRectZero];
     _naviBar.backgroundColor = [UIColor colorWithRed:(34/255.0) green:(34/255.0)  blue:(34/255.0) alpha:0.7];
-    
+
     _backButton = [[UIButton alloc] initWithFrame:CGRectZero];
     [_backButton setImage:[UIImage tz_imageNamedFromMyBundle:@"navi_back"] forState:UIControlStateNormal];
     [_backButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
     [_backButton addTarget:self action:@selector(backButtonClick) forControlEvents:UIControlEventTouchUpInside];
-    
+
     _selectButton = [[UIButton alloc] initWithFrame:CGRectZero];
     [_selectButton setImage:tzImagePickerVc.photoDefImage forState:UIControlStateNormal];
     [_selectButton setImage:tzImagePickerVc.photoSelImage forState:UIControlStateSelected];
@@ -123,18 +127,18 @@
     _selectButton.imageView.contentMode = UIViewContentModeScaleAspectFit;
     [_selectButton addTarget:self action:@selector(select:) forControlEvents:UIControlEventTouchUpInside];
     _selectButton.hidden = !tzImagePickerVc.showSelectBtn;
-    
+
     _indexLabel = [[UILabel alloc] init];
     _indexLabel.adjustsFontSizeToFitWidth = YES;
     _indexLabel.font = [UIFont systemFontOfSize:14];
     _indexLabel.textColor = [UIColor whiteColor];
     _indexLabel.textAlignment = NSTextAlignmentCenter;
-    
+
     [_naviBar addSubview:_selectButton];
     [_naviBar addSubview:_indexLabel];
     [_naviBar addSubview:_backButton];
     [self.view addSubview:_naviBar];
-    
+
     [self customConfigCustomNaviBar];
 }
 
@@ -147,43 +151,37 @@
     [_backButton setImageEdgeInsets:UIEdgeInsetsMake(0, -10, 0, 10)];
 
     if (_tzImagePickerVc.needCircleCrop) {
-        
-        UIButton * doneBtn = [[UIButton alloc] initWithFrame:CGRectMake(self.view.tz_width - 50, statusBarHeight, 50, 44)];
-        [doneBtn setTitle:@"完成" forState:UIControlStateNormal];
-        doneBtn.titleLabel.font = [UIFont systemFontOfSize:14];
-        [doneBtn addTarget:self action:@selector(doneButtonClick) forControlEvents:UIControlEventTouchUpInside];
-        
+
         UILabel * titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(40, statusBarHeight, self.view.tz_width - 80, 44)];
         titleLabel.font = [UIFont systemFontOfSize:16];
-        titleLabel.text = @"编辑头像";
+        titleLabel.text = @"裁切头像";
         titleLabel.textColor = [UIColor whiteColor];
         titleLabel.textAlignment = NSTextAlignmentCenter;
-        
-        [_naviBar addSubview:doneBtn];
+
         [_naviBar addSubview:titleLabel];
-        
+
         _naviBar.backgroundColor = [UIColor clearColor];
 
     } else {
-        
+
         _currentIndexLabel = [[UILabel alloc] initWithFrame:CGRectMake(50, statusBarHeight, self.view.tz_width - 100, 44)];
         _currentIndexLabel.font = [UIFont systemFontOfSize:16];
         _currentIndexLabel.textColor = [UIColor whiteColor];
         _currentIndexLabel.textAlignment = NSTextAlignmentCenter;
         [_naviBar addSubview:_currentIndexLabel];
-        
+
         if (_tzImagePickerVc.needExpression) {
             _naviBar.backgroundColor = [UIColor colorWithRed:(17/255.0) green:(15/255.0) blue:(28/255.0) alpha:1.0];
 
             _currentIndexLabel.text = @"添加表情";
-            
+
             UIButton * cancelBtn = [[UIButton alloc] initWithFrame:CGRectMake(self.view.tz_width - 50, statusBarHeight, 50, 44)];
             [cancelBtn setTitle:@"取消" forState:UIControlStateNormal];
             cancelBtn.titleLabel.font = [UIFont systemFontOfSize:14];
             [cancelBtn addTarget:self action:@selector(cancelBtnClick) forControlEvents:UIControlEventTouchUpInside];
-            
+
             [_naviBar addSubview:cancelBtn];
-            
+
             UIView * lineView = [[UIView alloc] initWithFrame:CGRectMake(0, statusBarHeight + 44 - 0.5, self.view.tz_width, 0.5)];
             lineView.backgroundColor = [UIColor blackColor];
             [_naviBar addSubview:lineView];
@@ -200,7 +198,7 @@
     _toolBar = [[UIView alloc] initWithFrame:CGRectZero];
     static CGFloat rgb = 34 / 255.0;
     _toolBar.backgroundColor = [UIColor colorWithRed:rgb green:rgb blue:rgb alpha:0.7];
-    
+
     TZImagePickerController *_tzImagePickerVc = (TZImagePickerController *)self.navigationController;
     if (_tzImagePickerVc.allowPickingOriginalPhoto) {
         _originalPhotoButton = [UIButton buttonWithType:UIButtonTypeCustom];
@@ -214,7 +212,7 @@
         [_originalPhotoButton setTitleColor:[UIColor whiteColor] forState:UIControlStateSelected];
         [_originalPhotoButton setImage:_tzImagePickerVc.photoPreviewOriginDefImage forState:UIControlStateNormal];
         [_originalPhotoButton setImage:_tzImagePickerVc.photoOriginSelImage forState:UIControlStateSelected];
-        
+
         _originalPhotoLabel = [[UILabel alloc] init];
         _originalPhotoLabel.textAlignment = NSTextAlignmentLeft;
         _originalPhotoLabel.font = [UIFont systemFontOfSize:13];
@@ -222,19 +220,19 @@
         _originalPhotoLabel.backgroundColor = [UIColor clearColor];
         if (_isSelectOriginalPhoto) [self showPhotoBytes];
     }
-    
+
     _doneButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    _doneButton.titleLabel.font = [UIFont systemFontOfSize:16];
+    _doneButton.titleLabel.font = [UIFont systemFontOfSize:13];
     [_doneButton addTarget:self action:@selector(doneButtonClick) forControlEvents:UIControlEventTouchUpInside];
     [_doneButton setTitle:_tzImagePickerVc.doneBtnTitleStr forState:UIControlStateNormal];
     [_doneButton setTitleColor:_tzImagePickerVc.oKButtonTitleColorNormal forState:UIControlStateNormal];
-    
+
     _numberImageView = [[UIImageView alloc] initWithImage:_tzImagePickerVc.photoNumberIconImage];
     _numberImageView.backgroundColor = [UIColor clearColor];
     _numberImageView.clipsToBounds = YES;
     _numberImageView.contentMode = UIViewContentModeScaleAspectFit;
     _numberImageView.hidden = _tzImagePickerVc.selectedModels.count <= 0;
-    
+
     _numberLabel = [[UILabel alloc] init];
     _numberLabel.font = [UIFont systemFontOfSize:15];
     _numberLabel.adjustsFontSizeToFitWidth = YES;
@@ -243,14 +241,14 @@
     _numberLabel.text = [NSString stringWithFormat:@"%zd",_tzImagePickerVc.selectedModels.count];
     _numberLabel.hidden = _tzImagePickerVc.selectedModels.count <= 0;
     _numberLabel.backgroundColor = [UIColor clearColor];
-    
+
     [_originalPhotoButton addSubview:_originalPhotoLabel];
     [_toolBar addSubview:_doneButton];
     [_toolBar addSubview:_originalPhotoButton];
     [_toolBar addSubview:_numberImageView];
     [_toolBar addSubview:_numberLabel];
     [self.view addSubview:_toolBar];
-    
+
     if (_tzImagePickerVc.photoPreviewPageUIConfigBlock) {
         _tzImagePickerVc.photoPreviewPageUIConfigBlock(_collectionView, _naviBar, _backButton, _selectButton, _indexLabel, _toolBar, _originalPhotoButton, _originalPhotoLabel, _doneButton, _numberImageView, _numberLabel);
     }
@@ -260,47 +258,45 @@
 // YangBo
 - (void)configCustomBottomToolBar
 {
+    _toolBar.backgroundColor = [UIColor colorWithRed:30/255.0 green:27/255.0 blue:43/255.0 alpha:0.9];
     TZImagePickerController *_tzImagePickerVc = (TZImagePickerController *)self.navigationController;
-    
-    if (_tzImagePickerVc.needCircleCrop) {
-        _toolBar.hidden = YES;
+
+    _doneButton.frame = CGRectMake(self.view.tz_width - 97, 13, 82, 32);
+    _doneButton.titleLabel.font = [UIFont systemFontOfSize:14];
+    _doneButton.layer.cornerRadius = 16;
+    _doneButton.layer.masksToBounds = YES;
+    _doneButton.backgroundColor = [UIColor colorWithRed:124/255.0 green:119/255.0 blue:226/255.0 alpha:1];
+    _numberImageView.hidden = YES;
+    _numberLabel.hidden = YES;
+
+    CAGradientLayer *layer = [CAGradientLayer layer];
+
+    //（0，0）表示从左上角开始变化。默认值是(0.5,0.0)表示从x轴为中间，y为顶端的开始变化
+    layer.startPoint = CGPointMake(0, 0);
+    //（1，1）表示到右下角变化结束。默认值是(0.5,1.0)  表示从x轴为中间，y为低端的结束变化
+    layer.endPoint = CGPointMake(1, 0);
+
+    NSMutableArray * tempColorsAry = [NSMutableArray arrayWithCapacity:1];
+
+    [tempColorsAry addObject:(id)[UIColor colorWithRed:124 / 255.0 green:119 / 255.0 blue:226 / 255.0 alpha:1].CGColor];
+    [tempColorsAry addObject:(id)[UIColor colorWithRed:161 / 255.0 green:109 / 255.0 blue:215 / 255.0 alpha:1].CGColor];
+
+    layer.colors = tempColorsAry;
+    layer.zPosition = 0;
+    layer.frame = _doneButton.layer.bounds;
+    [_doneButton.layer insertSublayer:layer atIndex:0];
+
+    [_doneButton setTitle:@"确定" forState:UIControlStateNormal];
+
+    if (_tzImagePickerVc.needExpression) {
+
     } else {
-        
-        _doneButton.frame = CGRectMake(self.view.tz_width - 97, 8, 82, 32);
-        _doneButton.titleLabel.font = [UIFont systemFontOfSize:14];
-        _doneButton.layer.cornerRadius = 2.5;
-        _doneButton.layer.masksToBounds = YES;
-        _doneButton.backgroundColor = [UIColor colorWithRed:124/255.0 green:119/255.0 blue:226/255.0 alpha:1];
-        _numberImageView.hidden = YES;
+        [_doneButton setTitle:@"确定" forState:UIControlStateDisabled];
+        [_doneButton setTitleColor:_tzImagePickerVc.oKButtonTitleColorNormal forState:UIControlStateNormal];
+        [_doneButton setTitleColor:_tzImagePickerVc.oKButtonTitleColorDisabled forState:UIControlStateDisabled];
 
-        if (_tzImagePickerVc.needExpression) {
-
-            _toolBar.backgroundColor = [UIColor clearColor];
-            
-            _numberLabel.hidden = YES;
-            
-            [_doneButton setTitle:@"确定" forState:UIControlStateNormal];
-            
-        } else {
-            if (_tzImagePickerVc.sendBtnType == 2) {
-                [_doneButton setTitle:@"发送" forState:UIControlStateNormal];
-                [_doneButton setTitle:@"发送" forState:UIControlStateDisabled];
-            } else {
-                [_doneButton setTitle:@"上传" forState:UIControlStateNormal];
-                [_doneButton setTitle:@"上传" forState:UIControlStateDisabled];
-            }
-            [_doneButton setTitleColor:_tzImagePickerVc.oKButtonTitleColorNormal forState:UIControlStateNormal];
-            [_doneButton setTitleColor:_tzImagePickerVc.oKButtonTitleColorDisabled forState:UIControlStateDisabled];
+        if (!_tzImagePickerVc.needCircleCrop) {
             _doneButton.enabled = _tzImagePickerVc.selectedModels.count || _tzImagePickerVc.alwaysEnableDoneBtn;
-            
-            
-            _numberLabel.frame = CGRectMake(15, 0, self.view.tz_width / 2, 48);
-            _numberLabel.text = [NSString stringWithFormat:@"还可上传%ld张，上限%ld张",  (_tzImagePickerVc.maxImagesCount - _tzImagePickerVc.selectedModels.count), _tzImagePickerVc.maxImagesCount];
-            _numberLabel.font = [UIFont systemFontOfSize:12];
-            _numberLabel.backgroundColor = [UIColor clearColor];
-            _numberLabel.textColor = [UIColor colorWithRed:155/255.0 green:155/255.0 blue:155/255.0 alpha:1];
-            _numberLabel.textAlignment = NSTextAlignmentLeft;
-            _numberLabel.hidden = NO;
         }
     }
 }
@@ -321,6 +317,11 @@
     [_collectionView registerClass:[TZPhotoPreviewCell class] forCellWithReuseIdentifier:@"TZPhotoPreviewCell"];
     [_collectionView registerClass:[TZVideoPreviewCell class] forCellWithReuseIdentifier:@"TZVideoPreviewCell"];
     [_collectionView registerClass:[TZGifPreviewCell class] forCellWithReuseIdentifier:@"TZGifPreviewCell"];
+    
+    TZImagePickerController *_tzImagePickerVc = (TZImagePickerController *)self.navigationController;
+    if (_tzImagePickerVc.scaleAspectFillCrop && _tzImagePickerVc.allowCrop) {
+        _collectionView.scrollEnabled = NO;
+    }
 }
 
 - (void)configCropView {
@@ -328,14 +329,14 @@
     if (_tzImagePickerVc.maxImagesCount <= 1 && _tzImagePickerVc.allowCrop && _tzImagePickerVc.allowPickingImage) {
         [_cropView removeFromSuperview];
         [_cropBgView removeFromSuperview];
-        
+
         _cropBgView = [UIView new];
         _cropBgView.userInteractionEnabled = NO;
         _cropBgView.frame = self.view.bounds;
         _cropBgView.backgroundColor = [UIColor clearColor];
         [self.view addSubview:_cropBgView];
         [TZImageCropManager overlayClippingWithView:_cropBgView cropRect:_tzImagePickerVc.cropRect containerView:self.view needCircleCrop:_tzImagePickerVc.needCircleCrop];
-        
+
         _cropView = [UIView new];
         _cropView.userInteractionEnabled = NO;
         _cropView.frame = _tzImagePickerVc.cropRect;
@@ -350,7 +351,7 @@
         if (_tzImagePickerVc.cropViewSettingBlock) {
             _tzImagePickerVc.cropViewSettingBlock(_cropView);
         }
-        
+
         [self.view bringSubviewToFront:_naviBar];
         [self.view bringSubviewToFront:_toolBar];
     }
@@ -361,16 +362,16 @@
 - (void)viewDidLayoutSubviews {
     [super viewDidLayoutSubviews];
     TZImagePickerController *_tzImagePickerVc = (TZImagePickerController *)self.navigationController;
-    
+
     BOOL isFullScreen = self.view.tz_height == [UIScreen mainScreen].bounds.size.height;
     CGFloat statusBarHeight = isFullScreen ? [TZCommonTools tz_statusBarHeight] : 0;
     CGFloat statusBarHeightInterval = isFullScreen ? (statusBarHeight - 20) : 0;
     CGFloat naviBarHeight = statusBarHeight + _tzImagePickerVc.navigationBar.tz_height;
     _naviBar.frame = CGRectMake(0, 0, self.view.tz_width, naviBarHeight);
-    _backButton.frame = CGRectMake(10, 10 + statusBarHeightInterval, 44, 44);
-    _selectButton.frame = CGRectMake(self.view.tz_width - 56, 10 + statusBarHeightInterval, 44, 44);
+    _backButton.frame = CGRectMake(10, 20 + statusBarHeightInterval, 44, 44);
+    _selectButton.frame = CGRectMake(self.view.tz_width - 56, 20 + statusBarHeightInterval, 44, 44);
     _indexLabel.frame = _selectButton.frame;
-    
+
     _layout.itemSize = CGSizeMake(self.view.tz_width + 20, self.view.tz_height);
     _layout.minimumInteritemSpacing = 0;
     _layout.minimumLineSpacing = 0;
@@ -383,8 +384,13 @@
     if (_tzImagePickerVc.allowCrop) {
         [_collectionView reloadData];
     }
-    
-    CGFloat toolBarHeight = [TZCommonTools tz_isIPhoneX] ? 44 + (83 - 49) : 44;
+//<<<<<<< HEAD
+//
+//    CGFloat toolBarHeight = [TZCommonTools tz_isIPhoneX] ? 58 + (83 - 49) : 58;
+//=======
+//
+    CGFloat toolBarHeight = 44 + [TZCommonTools tz_safeAreaInsets].bottom;
+//>>>>>>> master
     CGFloat toolBarTop = self.view.tz_height - toolBarHeight;
     _toolBar.frame = CGRectMake(0, toolBarTop, self.view.tz_width, toolBarHeight);
     if (_tzImagePickerVc.allowPickingOriginalPhoto) {
@@ -394,7 +400,7 @@
     }
 
     [self configCropView];
-    
+
     if (_tzImagePickerVc.photoPreviewPageDidLayoutSubviewsBlock) {
         _tzImagePickerVc.photoPreviewPageDidLayoutSubviewsBlock(_collectionView, _naviBar, _backButton, _selectButton, _indexLabel, _toolBar, _originalPhotoButton, _originalPhotoLabel, _doneButton, _numberImageView, _numberLabel);
     }
@@ -485,32 +491,52 @@
 }
 
 - (void)doneButtonClick {
+
+    bool show = [[NSUserDefaults standardUserDefaults] boolForKey:@"WGImagePickerWarningView"];
+
+    if (!show) {
+
+        WGImagePickerWarningView * view = [WGImagePickerWarningView loadNib];
+        __weak typeof(self) weakSelf = self;
+        view.agreeButtonAction = ^{
+            [weakSelf doneButtonClick];
+        };
+
+        view.frame = CGRectMake(0, 0, [UIScreen mainScreen].bounds.size.width, [UIScreen mainScreen].bounds.size.height);
+
+        [UIApplication.sharedApplication.keyWindow addSubview:view];
+        return;
+    }
+
     TZImagePickerController *_tzImagePickerVc = (TZImagePickerController *)self.navigationController;
     // 如果图片正在从iCloud同步中,提醒用户
     if (_progress > 0 && _progress < 1 && (_selectButton.isSelected || !_tzImagePickerVc.selectedModels.count )) {
         _alertView = [_tzImagePickerVc showAlertWithTitle:[NSBundle tz_localizedStringForKey:@"Synchronizing photos from iCloud"]];
         return;
     }
-    
+
     // 如果没有选中过照片 点击确定时选中当前预览的照片
-    if (_tzImagePickerVc.selectedModels.count == 0 && _tzImagePickerVc.minImagesCount <= 0) {
-        TZAssetModel *model = _models[self.currentIndex];
-        [_tzImagePickerVc addSelectedModel:model];
+    if (_tzImagePickerVc.selectedModels.count == 0 && _tzImagePickerVc.minImagesCount <= 0 && _tzImagePickerVc.autoSelectCurrentWhenDone) {
+        [self select:_selectButton];
     }
     NSIndexPath *indexPath = [NSIndexPath indexPathForItem:self.currentIndex inSection:0];
     TZPhotoPreviewCell *cell = (TZPhotoPreviewCell *)[_collectionView cellForItemAtIndexPath:indexPath];
     if (_tzImagePickerVc.allowCrop && [cell isKindOfClass:[TZPhotoPreviewCell class]]) { // 裁剪状态
-        _doneButton.enabled = NO;
+
         [_tzImagePickerVc showProgressHUD];
         UIImage *cropedImage = [TZImageCropManager cropImageView:cell.previewView.imageView toRect:_tzImagePickerVc.cropRect zoomScale:cell.previewView.scrollView.zoomScale containerView:self.view];
-        if (_tzImagePickerVc.needCircleCrop) {
+//        if (_tzImagePickerVc.needCircleCrop) {
 //            cropedImage = [TZImageCropManager circularClipImage:cropedImage];
-        }
+//        }
         _doneButton.enabled = YES;
         [_tzImagePickerVc hideProgressHUD];
         if (self.doneButtonClickBlockCropMode) {
             TZAssetModel *model = _models[self.currentIndex];
-            self.doneButtonClickBlockCropMode(cropedImage,model.asset);
+            if (model.asset) {
+                self.doneButtonClickBlockCropMode(cropedImage,model.asset);
+            } else {
+                _alertView = [_tzImagePickerVc showAlertWithTitle:[NSBundle tz_localizedStringForKey:@"图片信息获取失败，请重新选择"]];
+            }
         }
     } else if (self.doneButtonClickBlock) { // 非裁剪状态
         self.doneButtonClickBlock(_isSelectOriginalPhoto);
@@ -547,13 +573,13 @@
 - (void)scrollViewDidScroll:(UIScrollView *)scrollView {
     CGFloat offSetWidth = scrollView.contentOffset.x;
     offSetWidth = offSetWidth +  ((self.view.tz_width + 20) * 0.5);
-    
+
     NSInteger currentIndex = offSetWidth / (self.view.tz_width + 20);
     if (currentIndex < _models.count && _currentIndex != currentIndex) {
         _currentIndex = currentIndex;
         [self customRefreshNaviBarAndBottomBarState];
     }
-    
+
     [[NSNotificationCenter defaultCenter] postNotificationName:@"photoPreviewCollectionViewDidScroll" object:nil];
 }
 
@@ -566,44 +592,58 @@
 - (UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath {
     TZImagePickerController *_tzImagePickerVc = (TZImagePickerController *)self.navigationController;
     TZAssetModel *model = _models[indexPath.item];
-    
+
     TZAssetPreviewCell *cell;
     __weak typeof(self) weakSelf = self;
     if (_tzImagePickerVc.allowPickingMultipleVideo && model.type == TZAssetModelMediaTypeVideo) {
         cell = [collectionView dequeueReusableCellWithReuseIdentifier:@"TZVideoPreviewCell" forIndexPath:indexPath];
+        TZVideoPreviewCell *currentCell = (TZVideoPreviewCell *)cell;
+        currentCell.iCloudSyncFailedHandle = ^(id asset, BOOL isSyncFailed) {
+            model.iCloudFailed = isSyncFailed;
+            [weakSelf didICloudSyncStatusChanged:model];
+        };
     } else if (_tzImagePickerVc.allowPickingMultipleVideo && model.type == TZAssetModelMediaTypePhotoGif && _tzImagePickerVc.allowPickingGif) {
         cell = [collectionView dequeueReusableCellWithReuseIdentifier:@"TZGifPreviewCell" forIndexPath:indexPath];
+        TZGifPreviewCell *currentCell = (TZGifPreviewCell *)cell;
+        currentCell.previewView.iCloudSyncFailedHandle = ^(id asset, BOOL isSyncFailed) {
+            model.iCloudFailed = isSyncFailed;
+            [weakSelf didICloudSyncStatusChanged:model];
+        };
     } else {
         cell = [collectionView dequeueReusableCellWithReuseIdentifier:@"TZPhotoPreviewCell" forIndexPath:indexPath];
         TZPhotoPreviewCell *photoPreviewCell = (TZPhotoPreviewCell *)cell;
         photoPreviewCell.cropRect = _tzImagePickerVc.cropRect;
         photoPreviewCell.allowCrop = _tzImagePickerVc.allowCrop;
         photoPreviewCell.scaleAspectFillCrop = _tzImagePickerVc.scaleAspectFillCrop;
-        __weak typeof(_tzImagePickerVc) weakTzImagePickerVc = _tzImagePickerVc;
         __weak typeof(_collectionView) weakCollectionView = _collectionView;
         __weak typeof(photoPreviewCell) weakCell = photoPreviewCell;
         [photoPreviewCell setImageProgressUpdateBlock:^(double progress) {
             __strong typeof(weakSelf) strongSelf = weakSelf;
-            __strong typeof(weakTzImagePickerVc) strongTzImagePickerVc = weakTzImagePickerVc;
             __strong typeof(weakCollectionView) strongCollectionView = weakCollectionView;
             __strong typeof(weakCell) strongCell = weakCell;
             strongSelf.progress = progress;
             if (progress >= 1) {
                 if (strongSelf.isSelectOriginalPhoto) [strongSelf showPhotoBytes];
                 if (strongSelf.alertView && [strongCollectionView.visibleCells containsObject:strongCell]) {
-                    [strongTzImagePickerVc hideAlertView:strongSelf.alertView];
-                    strongSelf.alertView = nil;
-                    [strongSelf doneButtonClick];
+                    [strongSelf.alertView dismissViewControllerAnimated:YES completion:^{
+                        strongSelf.alertView = nil;
+                        [strongSelf doneButtonClick];
+                    }];
                 }
             }
         }];
+        photoPreviewCell.previewView.iCloudSyncFailedHandle = ^(id asset, BOOL isSyncFailed) {
+            model.iCloudFailed = isSyncFailed;
+            [weakSelf didICloudSyncStatusChanged:model];
+        };
     }
-    
+
     cell.model = model;
     [cell setSingleTapGestureBlock:^{
         __strong typeof(weakSelf) strongSelf = weakSelf;
         [strongSelf didTapPreviewCell];
     }];
+
     return cell;
 }
 
@@ -646,11 +686,11 @@
     _numberLabel.text = [NSString stringWithFormat:@"%ld",_tzImagePickerVc.selectedModels.count];
     _numberImageView.hidden = (_tzImagePickerVc.selectedModels.count <= 0 || _isHideNaviBar || _isCropImage);
     _numberLabel.hidden = (_tzImagePickerVc.selectedModels.count <= 0 || _isHideNaviBar || _isCropImage);
-    
+
     _originalPhotoButton.selected = _isSelectOriginalPhoto;
     _originalPhotoLabel.hidden = !_originalPhotoButton.isSelected;
     if (_isSelectOriginalPhoto) [self showPhotoBytes];
-    
+
     // If is previewing video, hide original photo button
     // 如果正在预览的是视频，隐藏原图按钮
     if (!_isHideNaviBar) {
@@ -662,7 +702,7 @@
             if (_isSelectOriginalPhoto)  _originalPhotoLabel.hidden = NO;
         }
     }
-    
+
     _doneButton.hidden = NO;
     _selectButton.hidden = !_tzImagePickerVc.showSelectBtn;
     // 让宽度/高度小于 最小可选照片尺寸 的图片不能选中
@@ -674,7 +714,8 @@
         _originalPhotoLabel.hidden = YES;
         _doneButton.hidden = YES;
     }
-    
+    // iCloud同步失败的UI刷新
+    [self didICloudSyncStatusChanged:model];
     if (_tzImagePickerVc.photoPreviewPageDidRefreshStateBlock) {
         _tzImagePickerVc.photoPreviewPageDidRefreshStateBlock(_collectionView, _naviBar, _backButton, _selectButton, _indexLabel, _toolBar, _originalPhotoButton, _originalPhotoLabel, _doneButton, _numberImageView, _numberLabel);
     }
@@ -693,32 +734,30 @@
     } else {
         _indexLabel.hidden = YES;
     }
-    
-    if (_tzImagePickerVc.needExpression) {
+
+    if (_tzImagePickerVc.needExpression ||
+        _tzImagePickerVc.isChangeHallCover) {
         _doneButton.enabled = YES;
     } else {
-        _doneButton.enabled = _tzImagePickerVc.selectedModels.count > 0 || _tzImagePickerVc.alwaysEnableDoneBtn;
-        if (_tzImagePickerVc.sendBtnType == 2) {
-            [_doneButton setTitle:[NSString stringWithFormat:@"发送(%ld)",_tzImagePickerVc.selectedModels.count] forState:UIControlStateNormal];
-            [_doneButton setTitle:[NSString stringWithFormat:@"发送(%ld)",_tzImagePickerVc.selectedModels.count] forState:UIControlStateSelected];
-            _numberLabel.text = [NSString stringWithFormat:@"还可发送%ld张，上限%ld张",  (_tzImagePickerVc.maxImagesCount - _tzImagePickerVc.selectedModels.count), _tzImagePickerVc.maxImagesCount];
+
+        if (_tzImagePickerVc.needCircleCrop) {
+            _doneButton.enabled = YES;
+            [_doneButton setTitle:@"确定" forState:UIControlStateNormal];
         } else {
-            [_doneButton setTitle:[NSString stringWithFormat:@"上传(%ld)",_tzImagePickerVc.selectedModels.count] forState:UIControlStateNormal];
-            
-            [_doneButton setTitle:[NSString stringWithFormat:@"上传(%ld)",_tzImagePickerVc.selectedModels.count] forState:UIControlStateSelected];
-            
-            _numberLabel.text = [NSString stringWithFormat:@"还可上传%ld张，上限%ld张",  (_tzImagePickerVc.maxImagesCount - _tzImagePickerVc.selectedModels.count), _tzImagePickerVc.maxImagesCount];
+            _doneButton.enabled = _tzImagePickerVc.selectedModels.count > 0 || _tzImagePickerVc.alwaysEnableDoneBtn;
+            [_doneButton setTitle:[NSString stringWithFormat:@"确定 (%ld)",_tzImagePickerVc.selectedModels.count] forState:UIControlStateNormal];
+            [_doneButton setTitle:[NSString stringWithFormat:@"确定 (%ld)",_tzImagePickerVc.selectedModels.count] forState:UIControlStateSelected];
         }
     }
-    
+
     if (_currentIndexLabel && !_tzImagePickerVc.needExpression) {
         _currentIndexLabel.text = [NSString stringWithFormat:@"%ld/%ld", _currentIndex + 1, self.models.count];
     }
-    
+
     _originalPhotoButton.selected = _isSelectOriginalPhoto;
     _originalPhotoLabel.hidden = !_originalPhotoButton.isSelected;
     if (_isSelectOriginalPhoto) [self showPhotoBytes];
-    
+
     // If is previewing video, hide original photo button
     // 如果正在预览的是视频，隐藏原图按钮
     if (!_isHideNaviBar) {
@@ -730,7 +769,7 @@
             if (_isSelectOriginalPhoto)  _originalPhotoLabel.hidden = NO;
         }
     }
-    
+
     _doneButton.hidden = NO;
     _selectButton.hidden = !_tzImagePickerVc.showSelectBtn;
     // 让宽度/高度小于 最小可选照片尺寸 的图片不能选中
@@ -752,6 +791,25 @@
         } else {
             self->_selectButton.imageView.contentMode = UIViewContentModeScaleAspectFit;
         }
+    });
+}
+
+- (void)didICloudSyncStatusChanged:(TZAssetModel *)model{
+    dispatch_async(dispatch_get_main_queue(), ^{
+        TZImagePickerController *_tzImagePickerVc = (TZImagePickerController *)self.navigationController;
+        // onlyReturnAsset为NO时,依赖TZ返回大图,所以需要有iCloud同步失败的提示,并且不能选择,
+        if (_tzImagePickerVc.onlyReturnAsset) {
+            return;
+        }
+        TZAssetModel *currentModel = self.models[self.currentIndex];
+        if (_tzImagePickerVc.selectedModels.count <= 0) {
+//            self->_doneButton.enabled = !currentModel.iCloudFailed;
+        } else {
+            self->_doneButton.enabled = YES;
+        }
+        self->_selectButton.hidden = currentModel.iCloudFailed || !_tzImagePickerVc.showSelectBtn;
+        self->_originalPhotoButton.hidden = currentModel.iCloudFailed;
+        self->_originalPhotoLabel.hidden = currentModel.iCloudFailed;
     });
 }
 

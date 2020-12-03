@@ -31,6 +31,12 @@
 - (instancetype)initWithFrame:(CGRect)frame {
     self = [super initWithFrame:frame];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(reload:) name:@"TZ_PHOTO_PICKER_RELOAD_NOTIFICATION" object:nil];
+
+    self.contentView.layer.cornerRadius = 4;
+    self.contentView.layer.masksToBounds = YES;
+    self.backgroundColor = [UIColor colorWithRed:30 / 255.0 green:27 / 255.0 blue:43 / 255.0 alpha:1];
+    self.contentView.backgroundColor = self.backgroundColor;
+
     return self;
 }
 
@@ -41,6 +47,7 @@
         // Set the cell's thumbnail image if it's still showing the same asset.
         if ([self.representedAssetIdentifier isEqualToString:model.asset.localIdentifier]) {
             self.imageView.image = photo;
+            [self setNeedsLayout];
         } else {
             // NSLog(@"this cell is showing other asset");
             [[PHImageManager defaultManager] cancelImageRequest:self.imageRequestID];
@@ -58,7 +65,7 @@
     self.selectPhotoButton.selected = model.isSelected;
     self.selectImageView.image = self.selectPhotoButton.isSelected ? self.photoSelImage : self.photoDefImage;
     self.indexLabel.hidden = !self.selectPhotoButton.isSelected;
-    
+
     self.type = (NSInteger)model.type;
     // 让宽度/高度小于 最小可选照片尺寸 的图片不能选中
     if (![[TZImageManager manager] isPhotoSelectableWithAsset:model.asset]) {
@@ -74,7 +81,7 @@
         [self cancelBigImageRequest];
     }
     [self setNeedsLayout];
-    
+
     if (self.assetCellDidSetModelBlock) {
         self.assetCellDidSetModelBlock(self, _imageView, _selectImageView, _indexLabel, _bottomView, _timeLength, _videoImgView);
     }
@@ -107,7 +114,7 @@
         _selectImageView.hidden = YES;
         _selectPhotoButton.hidden = YES;
     }
-    
+
     if (type == TZAssetCellTypeVideo) {
         self.bottomView.hidden = NO;
         self.timeLength.text = _model.timeLength;
@@ -166,8 +173,14 @@
     if (_bigImageRequestID) {
         [[PHImageManager defaultManager] cancelImageRequest:_bigImageRequestID];
     }
-    
+
     _bigImageRequestID = [[TZImageManager manager] requestImageDataForAsset:_model.asset completion:^(NSData *imageData, NSString *dataUTI, UIImageOrientation orientation, NSDictionary *info) {
+        BOOL iCloudSyncFailed = !imageData && [TZCommonTools isICloudSyncError:info[PHImageErrorKey]];
+        self.model.iCloudFailed = iCloudSyncFailed;
+        if (iCloudSyncFailed && self.didSelectPhotoBlock) {
+            self.didSelectPhotoBlock(YES);
+            self.selectImageView.image = self.photoDefImage;
+        }
         [self hideProgressView];
     } progressHandler:^(double progress, NSError *error, BOOL *stop, NSDictionary *info) {
         if (self.model.isSelected) {
@@ -185,6 +198,18 @@
             [self cancelBigImageRequest];
         }
     }];
+    if (_model.type == TZAssetCellTypeVideo) {
+        [[TZImageManager manager] getVideoWithAsset:_model.asset completion:^(AVPlayerItem *playerItem, NSDictionary *info) {
+            BOOL iCloudSyncFailed = !playerItem && [TZCommonTools isICloudSyncError:info[PHImageErrorKey]];
+            self.model.iCloudFailed = iCloudSyncFailed;
+            if (iCloudSyncFailed && self.didSelectPhotoBlock) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    self.didSelectPhotoBlock(YES);
+                    self.selectImageView.image = self.photoDefImage;
+                });
+            }
+        }];
+    }
 }
 
 - (void)cancelBigImageRequest {
@@ -198,6 +223,21 @@
 
 - (void)reload:(NSNotification *)noti {
     TZImagePickerController *tzImagePickerVc = (TZImagePickerController *)noti.object;
+
+    UIViewController *parentViewController = nil;
+    UIResponder *responder = self.nextResponder;
+    do {
+        if ([responder isKindOfClass:[UIViewController class]]) {
+            parentViewController = (UIViewController *)responder;
+            break;
+        }
+        responder = responder.nextResponder;
+    } while (responder);
+
+    if (parentViewController.navigationController != tzImagePickerVc) {
+        return;
+    }
+
     if (self.model.isSelected && tzImagePickerVc.showSelectedIndex) {
         self.index = [tzImagePickerVc.selectedAssetIds indexOfObject:self.model.asset.localIdentifier] + 1;
     }
@@ -227,11 +267,13 @@
         UIImageView *imageView = [[UIImageView alloc] init];
         imageView.contentMode = UIViewContentModeScaleAspectFill;
         imageView.clipsToBounds = YES;
+        imageView.layer.cornerRadius = 4;
         [self.contentView addSubview:imageView];
         _imageView = imageView;
-        
+
         _tapGesture = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(didTapImageView)];
         [_imageView addGestureRecognizer:_tapGesture];
+        self.allowPreview = self.allowPreview;
     }
     return _imageView;
 }
@@ -328,7 +370,7 @@
     }
     _indexLabel.frame = _selectImageView.frame;
     _imageView.frame = CGRectMake(0, 0, self.tz_width, self.tz_height);
-    
+
     static CGFloat progressWH = 20;
     CGFloat progressXY = (self.tz_width - progressWH) / 2;
     _progressView.frame = CGRectMake(progressXY, progressXY, progressWH, progressWH);
@@ -336,16 +378,16 @@
     _bottomView.frame = CGRectMake(0, self.tz_height - 17, self.tz_width, 17);
     _videoImgView.frame = CGRectMake(8, 0, 17, 17);
     _timeLength.frame = CGRectMake(self.videoImgView.tz_right, 0, self.tz_width - self.videoImgView.tz_right - 5, 17);
-    
+
     self.type = (NSInteger)self.model.type;
     self.showSelectBtn = self.showSelectBtn;
-    
+
     [self.contentView bringSubviewToFront:_bottomView];
     [self.contentView bringSubviewToFront:_cannotSelectLayerButton];
     [self.contentView bringSubviewToFront:_selectPhotoButton];
     [self.contentView bringSubviewToFront:_selectImageView];
     [self.contentView bringSubviewToFront:_indexLabel];
-    
+
     if (self.assetCellDidLayoutSubviewsBlock) {
         self.assetCellDidLayoutSubviewsBlock(self, _imageView, _selectImageView, _indexLabel, _bottomView, _timeLength, _videoImgView);
     }
@@ -360,25 +402,27 @@
 @interface TZAlbumCell ()
 @property (weak, nonatomic) UIImageView *posterImageView;
 @property (weak, nonatomic) UILabel *titleLabel;
+@property (weak, nonatomic) UILabel *countLabel;
+
 @end
 
 @implementation TZAlbumCell
 
 - (instancetype)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier {
     self = [super initWithStyle:style reuseIdentifier:reuseIdentifier];
-    self.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
+    self.backgroundColor = [UIColor colorWithRed:30 / 255.0 green:27 / 255.0 blue:43 / 255.0 alpha:1];
+    self.selectionStyle = UITableViewCellSelectionStyleNone;
+
     return self;
 }
 
 - (void)setModel:(TZAlbumModel *)model {
     _model = model;
-    
-    NSMutableAttributedString *nameString = [[NSMutableAttributedString alloc] initWithString:model.name attributes:@{NSFontAttributeName:[UIFont systemFontOfSize:16],NSForegroundColorAttributeName:[UIColor blackColor]}];
-    NSAttributedString *countString = [[NSAttributedString alloc] initWithString:[NSString stringWithFormat:@"  (%zd)",model.count] attributes:@{NSFontAttributeName:[UIFont systemFontOfSize:16],NSForegroundColorAttributeName:[UIColor lightGrayColor]}];
-    [nameString appendAttributedString:countString];
-    self.titleLabel.attributedText = nameString;
+    self.titleLabel.text = model.name;
+    self.countLabel.text = [NSString stringWithFormat:@"%zd张",model.count];
     [[TZImageManager manager] getPostImageWithAlbumModel:model completion:^(UIImage *postImage) {
         self.posterImageView.image = postImage;
+        [self setNeedsLayout];
     }];
     if (model.selectedCount) {
         self.selectedCountButton.hidden = NO;
@@ -386,7 +430,7 @@
     } else {
         self.selectedCountButton.hidden = YES;
     }
-    
+
     if (self.albumCellDidSetModelBlock) {
         self.albumCellDidSetModelBlock(self, _posterImageView, _titleLabel);
     }
@@ -396,9 +440,11 @@
     [super layoutSubviews];
     _selectedCountButton.frame = CGRectMake(self.contentView.tz_width - 24, 23, 24, 24);
     NSInteger titleHeight = ceil(self.titleLabel.font.lineHeight);
-    self.titleLabel.frame = CGRectMake(80, (self.tz_height - titleHeight) / 2, self.tz_width - 80 - 50, titleHeight);
-    self.posterImageView.frame = CGRectMake(0, 0, 70, 70);
-    
+    self.titleLabel.frame = CGRectMake(88, 17.5, self.tz_width - 98, titleHeight);
+    self.countLabel.frame = CGRectMake(88, self.titleLabel.tz_bottom + 9, self.tz_width - 98, 13);
+
+    self.posterImageView.frame = CGRectMake(13.5, 7.5, 60, 60);
+
     if (self.albumCellDidLayoutSubviewsBlock) {
         self.albumCellDidLayoutSubviewsBlock(self, _posterImageView, _titleLabel);
     }
@@ -415,6 +461,7 @@
         UIImageView *posterImageView = [[UIImageView alloc] init];
         posterImageView.contentMode = UIViewContentModeScaleAspectFill;
         posterImageView.clipsToBounds = YES;
+        posterImageView.layer.cornerRadius = 4;
         [self.contentView addSubview:posterImageView];
         _posterImageView = posterImageView;
     }
@@ -424,13 +471,25 @@
 - (UILabel *)titleLabel {
     if (_titleLabel == nil) {
         UILabel *titleLabel = [[UILabel alloc] init];
-        titleLabel.font = [UIFont boldSystemFontOfSize:17];
-        titleLabel.textColor = [UIColor blackColor];
+        titleLabel.font = [UIFont boldSystemFontOfSize:16];
+        titleLabel.textColor = [UIColor whiteColor];
         titleLabel.textAlignment = NSTextAlignmentLeft;
         [self.contentView addSubview:titleLabel];
         _titleLabel = titleLabel;
     }
     return _titleLabel;
+}
+
+- (UILabel *)countLabel {
+    if (_countLabel == nil) {
+        UILabel *countLabel = [[UILabel alloc] init];
+        countLabel.font = [UIFont boldSystemFontOfSize:11];
+        countLabel.textColor = [UIColor colorWithRed:93 / 255.0 green:94 / 255.0 blue:102 / 255.0 alpha:1];
+        countLabel.textAlignment = NSTextAlignmentLeft;
+        [self.contentView addSubview:countLabel];
+        _countLabel = countLabel;
+    }
+    return _countLabel;
 }
 
 - (UIButton *)selectedCountButton {
@@ -457,12 +516,15 @@
 - (instancetype)initWithFrame:(CGRect)frame {
     self = [super initWithFrame:frame];
     if (self) {
-        self.backgroundColor = [UIColor whiteColor];
+        self.backgroundColor = [UIColor colorWithRed:35 / 255.0 green:32 / 255.0 blue:49 / 255.0 alpha:1.0];
         _imageView = [[UIImageView alloc] init];
-        _imageView.backgroundColor = [UIColor colorWithWhite:1.000 alpha:0.500];
+        _imageView.backgroundColor = [UIColor colorWithRed:35 / 255.0 green:32 / 255.0 blue:49 / 255.0 alpha:1.0];
         _imageView.contentMode = UIViewContentModeScaleAspectFill;
         [self.contentView addSubview:_imageView];
         self.clipsToBounds = YES;
+
+        self.layer.cornerRadius = 4;
+        self.layer.masksToBounds = YES;
     }
     return self;
 }

@@ -52,16 +52,20 @@
     _failureBlock = failureBlock;
 }
 
+- (void)stopUpdatingLocation {
+    [self.locationManager stopUpdatingLocation];
+}
+
 #pragma mark - CLLocationManagerDelegate
 
 /// 地理位置发生改变时触发
 - (void)locationManager:(CLLocationManager *)manager didUpdateLocations:(NSArray<CLLocation *> *)locations {
     [manager stopUpdatingLocation];
-    
+
     if (_successBlock) {
         _successBlock(locations);
     }
-    
+
     if (_geocodeBlock && locations.count) {
         CLGeocoder *geocoder = [[CLGeocoder alloc] init];
         [geocoder reverseGeocodeLocation:[locations firstObject] completionHandler:^(NSArray *array, NSError *error) {
@@ -75,7 +79,7 @@
     NSLog(@"定位失败, 错误: %@",error);
     switch([error code]) {
         case kCLErrorDenied: { // 用户禁止了定位权限
-            
+
         } break;
         default: break;
     }
