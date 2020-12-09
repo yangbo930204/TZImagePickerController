@@ -200,7 +200,7 @@
     _previewView.frame = self.view.bounds;
     _previewView.scrollView.frame = self.view.bounds;
 
-    CGFloat toolBarHeight = 44 + [TZCommonTools tz_safeAreaInsets].bottom;
+    CGFloat toolBarHeight = 55 + [TZCommonTools tz_safeAreaInsets].bottom;
     _toolBar.frame = CGRectMake(0, self.view.tz_height - toolBarHeight, self.view.tz_width, toolBarHeight);
 
     if (tzImagePickerVc.gifPreviewPageDidLayoutSubviewsBlock) {

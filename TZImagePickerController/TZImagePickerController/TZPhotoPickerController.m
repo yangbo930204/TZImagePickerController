@@ -413,7 +413,7 @@ static CGFloat itemMargin = 7.5;
 
     TZImagePickerController *_tzImagePickerVc = (TZImagePickerController *)self.navigationController;
 
-    _doneButton.frame = CGRectMake(self.view.tz_width - 97, 13, 82, 32);
+    _doneButton.frame = CGRectMake(self.view.tz_width - 97, 9, 82, 32);
     _doneButton.titleLabel.font = [UIFont systemFontOfSize:13];
     _doneButton.layer.cornerRadius = 16;
     _doneButton.layer.masksToBounds = YES;

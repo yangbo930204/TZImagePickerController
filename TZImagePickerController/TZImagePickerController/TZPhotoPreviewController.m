@@ -261,7 +261,7 @@
     _toolBar.backgroundColor = [UIColor colorWithRed:30/255.0 green:27/255.0 blue:43/255.0 alpha:0.9];
     TZImagePickerController *_tzImagePickerVc = (TZImagePickerController *)self.navigationController;
 
-    _doneButton.frame = CGRectMake(self.view.tz_width - 97, 13, 82, 32);
+    _doneButton.frame = CGRectMake(self.view.tz_width - 97, 9, 82, 32);
     _doneButton.titleLabel.font = [UIFont systemFontOfSize:14];
     _doneButton.layer.cornerRadius = 16;
     _doneButton.layer.masksToBounds = YES;
@@ -385,7 +385,7 @@
         [_collectionView reloadData];
     }
 
-    CGFloat toolBarHeight = 44 + [TZCommonTools tz_safeAreaInsets].bottom;
+    CGFloat toolBarHeight = 50 + [TZCommonTools tz_safeAreaInsets].bottom;
     CGFloat toolBarTop = self.view.tz_height - toolBarHeight;
     _toolBar.frame = CGRectMake(0, toolBarTop, self.view.tz_width, toolBarHeight);
     if (_tzImagePickerVc.allowPickingOriginalPhoto) {
